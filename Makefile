@@ -1,23 +1,39 @@
 GO ?= go
+GOFMT ?= gofmt
+SHFMT ?= shfmt
+DPRINT := ./.tools/dprint
 GOLANGCI_VERSION := v2.11.3
-.PHONY: build fmt lint test check tools package clean
+SHFMT_VERSION := v3.12.0
+.PHONY: build fmt fmt-check lint test check tools format-tools package clean
 build:
 	$(GO) build -trimpath -o bin/afishk ./cmd/afishk
 fmt:
-	gofmt -w cmd internal
+	$(GOFMT) -w cmd internal
+	$(SHFMT) -w -i 2 -ci scripts/*.sh
+	$(DPRINT) fmt
+fmt-check:
+	@command -v $(GOFMT) >/dev/null
+	@files="$$($(GOFMT) -l cmd internal)" || exit; \
+		test -z "$$files" || (echo 'Run make fmt'; exit 1)
+	$(SHFMT) -d -i 2 -ci scripts/*.sh
+	$(DPRINT) check
 lint:
 	golangci-lint run
+	shellcheck scripts/*.sh
 
 test:
 	$(GO) test -race -count=1 ./...
-check:
-	@test -z "$$(gofmt -l cmd internal)" || (echo 'Run make fmt'; exit 1)
+check: fmt-check
 	$(GO) vet ./...
 	$(GO) test -race -count=1 ./...
 	@for file in scripts/*.sh; do bash -n "$$file" || exit; done
 
-tools:
+tools: format-tools
 	$(GO) install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_VERSION)
+format-tools:
+	$(GO) install mvdan.cc/sh/v3/cmd/shfmt@$(SHFMT_VERSION)
+	./scripts/install-dprint.sh
+	$(DPRINT) install
 package:
 	./scripts/package.sh $(VERSION)
 clean:

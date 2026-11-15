@@ -1,53 +1,74 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#0e2026" />
+    <title>aFISHk · Fishing Remotely</title>
+    <link rel="stylesheet" href="/style.css" />
+    <script src="/app.js" defer></script>
+  </head>
 
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#0e2026">
-  <title>aFISHk · Fishing Remotely</title>
-  <link rel="stylesheet" href="/style.css">
-  <script src="/app.js" defer></script>
-</head>
-
-<body>
-  <main>
-    <header>
-      <h1>aFISHk</h1>
-      <div class="tagline">
-        <span>At the water’s edge.</span>
-        <span class="waterline" aria-hidden="true"></span>
+  <body>
+    <main>
+      <header>
+        <h1>aFISHk</h1>
+        <div class="tagline">
+          <span>At the water’s edge.</span>
+          <span class="waterline" aria-hidden="true"></span>
+        </div>
+      </header>
+      <div class="fish-control">
+        <button id="fish" disabled aria-describedby="fish-hint">
+          <span class="fish-icon" aria-hidden="true">🎣</span>
+          <br aria-hidden="true" />
+          <small id="fish-hint">Tap to fish. Listen for a bite. Tap to reel.</small>
+        </button>
+        <span
+          id="connection"
+          class="connection"
+          role="status"
+          data-state="connecting"
+          title="Connecting to desktop service…"
+        >
+          <span class="sr-only">Connecting to desktop service…</span>
+        </span>
       </div>
-    </header>
-    <div class="fish-control">
-      <button id="fish" disabled aria-describedby="fish-hint">
-        <span class="fish-icon" aria-hidden="true">🎣</span>
-        <small id="fish-hint">Tap to fish. Listen for a bite. Tap to reel.</small>
-      </button>
-      <span id="connection" class="connection" role="status" data-state="connecting"
-        title="Connecting to desktop service…">
-        <span class="sr-only">Connecting to desktop service…</span>
-      </span>
-    </div>
-    <section class="tools" aria-label="Companion tools">
-      <button id="audio-start" disabled>Listen to desktop</button>
-      <button id="audio-stop" disabled>Stop audio</button>
-      <button id="capture" disabled>Fresh screenshot</button>
-    </section>
-    <audio id="audio" aria-label="Desktop audio" autoplay playsinline controls></audio>
-    <section class="activity" aria-labelledby="activity-title">
-      <h2 id="activity-title">Activity <button id="log-sort" type="button" aria-controls="activity-log"
-          aria-label="Newest first. Sort oldest first" title="Newest first. Sort oldest first"><span
-            aria-hidden="true">▼</span></button></h2>
-      <div id="activity-log" role="log" aria-label="Activity log" aria-relevant="additions" tabindex="0"></div>
-    </section>
-    <section id="capture-panel" hidden>
-      <h2>Latest successful capture</h2>
-      <a id="full-image" href="/api/screenshot.png" target="_blank" rel="noopener">Open full size to zoom</a>
-      <img id="screenshot" alt="Latest successful WoW window capture">
-    </section>
-    <footer>This app let’s you fish remotely, it doesn’t fish for you.</footer>
-  </main>
-</body>
-
+      <section class="tools" aria-label="Companion tools">
+        <button id="audio-start" disabled>Listen to desktop</button>
+        <button id="audio-stop" disabled>Stop audio</button>
+        <button id="capture" disabled>Fresh screenshot</button>
+      </section>
+      <audio id="audio" aria-label="Desktop audio" autoplay playsinline controls></audio>
+      <section class="activity" aria-labelledby="activity-title">
+        <h2 id="activity-title">
+          Activity
+          <button
+            id="log-sort"
+            type="button"
+            aria-controls="activity-log"
+            aria-label="Newest first. Sort oldest first"
+            title="Newest first. Sort oldest first"
+          >
+            <span aria-hidden="true">▼</span>
+          </button>
+        </h2>
+        <div
+          id="activity-log"
+          role="log"
+          aria-label="Activity log"
+          aria-relevant="additions"
+          tabindex="0"
+        >
+        </div>
+      </section>
+      <section id="capture-panel" hidden>
+        <h2>Latest successful capture</h2>
+        <a id="full-image" href="/api/screenshot.png" target="_blank" rel="noopener"
+        >Open full size to zoom</a>
+        <img id="screenshot" alt="Latest successful WoW window capture" />
+      </section>
+      <footer>This app lets you fish remotely; it doesn’t fish for you.</footer>
+    </main>
+  </body>
 </html>
