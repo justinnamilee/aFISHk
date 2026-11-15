@@ -42,7 +42,16 @@ async function startAudio() {
     if (!window.RTCPeerConnection) throw new Error('This browser does not support WebRTC');
     const peer = new RTCPeerConnection({iceServers:[]}); pc = peer;
     peer.addTransceiver('audio', {direction:'recvonly'});
-    peer.ontrack = (event) => { $('audio').srcObject = new MediaStream([event.track]); $('audio').play().catch(() => show('audio-state', 'Tap Play in the audio player to allow playback')); };
+    peer.ontrack = (event) => {
+      if (pc !== peer) return;
+      // Give Wi-Fi/VPN packet jitter some headroom on mobile. This is a hint;
+      // unsupported browsers retain their own adaptive buffer.
+      if ('jitterBufferTarget' in event.receiver) {
+        try { event.receiver.jitterBufferTarget = 120; } catch (_) { /* Optional browser hint. */ }
+      }
+      $('audio').srcObject = new MediaStream([event.track]);
+      $('audio').play().catch(() => show('audio-state', 'Tap Play in the audio player to allow playback'));
+    };
     peer.onconnectionstatechange = () => {
       if (pc !== peer) return;
       show('audio-state', `Audio ${peer.connectionState}`);
