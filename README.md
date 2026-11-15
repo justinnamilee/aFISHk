@@ -62,8 +62,8 @@ includes the compiled binary; development tools are not needed to install or run
 From the source or extracted release directory:
 
 ```bash
-./scripts/setup-plasma.sh
-make install
+./scripts/setup-plasma.sh # only needs to be done once
+make install              # should be run when updating
 ```
 
 The helper installs runtime packages using your enabled DNF repositories and
@@ -119,8 +119,12 @@ Allow these **destination ports on the desktop**, restricted to your VPN clients
 | TCP | `8787` | Web page, controls, screenshots, audio negotiation |
 | UDP | `49160–49180` | WebRTC audio |
 
-Allow return traffic; the browser chooses its own UDP source port. To use a
-smaller range, edit these fields in your existing config, then restart:
+Allow UDP traffic for sound; the browser chooses its own UDP source port from the range.
+WebRTC will not be carried over HTTP, and thus requires its own Firewall rules.
+For HTTPS, only the TCP port is affected, setup your proxy accordingly, but the
+WebRTC ports must be open directly to the host running WoW.
+
+To use a smaller UDP port range, edit these fields in your existing config, then restart:
 
 ```json
 "udp_min": 49160,
@@ -128,8 +132,9 @@ smaller range, edit these fields in your existing config, then restart:
 ```
 
 The range is inclusive; equal values select one port, which must be available.
-`ice_address` must be the desktop IPv4 reachable by the phone. There is no public
-STUN/TURN service, and an HTTP reverse proxy does not carry the audio stream.
+`ice_address` must be the desktop IPv4 reachable by your device. To reiterate,
+there is no public STUN/TURN service, and an HTTP reverse proxy does not carry
+the audio stream.
 
 ### 5. Start and sign in
 
@@ -156,7 +161,7 @@ The activity log shows newest entries first; ▼/▲ switches the order.
 After checking the setup below, optionally start aFISHk with your graphical session:
 
 ```bash
-systemctl --user enable afishk
+systemctl --user enable --now afishk
 ```
 
 ## Check your setup before using it remotely
@@ -195,11 +200,12 @@ systemctl --user restart afishk
 ```
 
 For a release update, verify/extract the new archive, run `make install` there,
-and restart. Keep the same install-path overrides; do not rerun setup.
+and restart. Do not rerun setup.
 
 ```bash
 systemctl --user stop afishk
-systemctl --user status afishk
+make install
+systemctl --user start afishk
 journalctl --user -u afishk -f
 ```
 
@@ -239,7 +245,7 @@ built-in TLS. Certificate issuance and renewal are external; restart after
 replacement. For a proxy, bind HTTP to loopback and preserve Host, Origin,
 Authorization and X-CSRF-Token headers. Forwarded headers are not trusted, and
 UDP media still needs its direct VPN route. Use plain HTTP only on a trusted
-LAN/VPN; Basic authentication alone does not encrypt HTTP.
+LAN/VPN; **Basic authentication alone does not encrypt HTTP**.
 
 **Install paths:** `make install` accepts `BINDIR`, `CONFIGDIR`,
 `SYSTEMD_USER_DIR`, `APPLICATIONSDIR` and `BINARY` as environment variables or
@@ -299,9 +305,12 @@ workflow refuses to modify published releases.
 
 ## License and credits
 
-GNU GPL v3 or later; see [LICENSE](LICENSE). FishFry is installed separately and
-retains its publisher's license. aFISHk uses [KWin](https://develop.kde.org/docs/plasma/kwin/),
-[ydotool](https://github.com/ReimuNotMoe/ydotool),
-[FFmpeg](https://ffmpeg.org/), [PipeWire](https://pipewire.org/), and
-[Pion WebRTC](https://github.com/pion/webrtc). These projects retain their own
-licenses. Go dependency versions and checksums are in `go.mod` and `go.sum`.
+- Project is GNU GPL v3 or later; see [LICENSE](LICENSE).
+- [FishFry](https://www.curseforge.com/wow/addons/fishfry-forever) is installed separately and retains its publisher's license.
+- aFISHk uses:
+  - [KWin](https://develop.kde.org/docs/plasma/kwin/),
+  - [ydotool](https://github.com/ReimuNotMoe/ydotool),
+  - [FFmpeg](https://ffmpeg.org/),
+  - [PipeWire](https://pipewire.org/), and
+  - [Pion WebRTC](https://github.com/pion/webrtc).
+  - These projects retain their own licenses.
