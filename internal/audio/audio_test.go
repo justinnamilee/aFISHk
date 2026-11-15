@@ -26,7 +26,17 @@ func TestWebRTCAudioAndCleanup(t *testing.T) {
 		t.Skip("FFmpeg is required for the audio integration test")
 	}
 	wrapper := filepath.Join(t.TempDir(), "ffmpeg-test")
-	script := fmt.Sprintf("#!/bin/bash\nset -eu\nfor last; do :; done\nexec %q -nostdin -hide_banner -loglevel error -re -f lavfi -i sine=frequency=440:sample_rate=48000 -c:a libopus -ac 2 -ar 48000 -frame_duration 20 -payload_type 111 -f rtp \"$last\"\n", ffmpeg)
+	// Preserve the real encoder/muxer arguments so unsupported options fail this
+	// test too. Replace only the desktop input and pace the synthetic source.
+	script := fmt.Sprintf(`#!/bin/bash
+set -eu
+args=("$@")
+for ((i=0; i<${#args[@]}; i++)); do
+  if [[ ${args[i]} == -f && ${args[i+1]:-} == pulse ]]; then args[i+1]=lavfi; fi
+  if [[ ${args[i]} == -i ]]; then args[i+1]=sine=frequency=440:sample_rate=48000; fi
+done
+exec %q -re "${args[@]}"
+`, ffmpeg)
 	if err = os.WriteFile(wrapper, []byte(script), 0700); err != nil {
 		t.Fatal(err)
 	}
@@ -44,7 +54,24 @@ func TestWebRTCAudioAndCleanup(t *testing.T) {
 		t.Fatal(err)
 	}
 	received := make(chan error, 1)
-	pc.OnTrack(func(track *webrtc.TrackRemote, _ *webrtc.RTPReceiver) { _, _, e := track.ReadRTP(); received <- e })
+	pc.OnTrack(func(track *webrtc.TrackRemote, _ *webrtc.RTPReceiver) {
+		// Verify a second of continuous 20 ms audio, not just one startup packet.
+		var sequence uint16
+		var timestamp uint32
+		for i := 0; i < 50; i++ {
+			packet, _, e := track.ReadRTP()
+			if e != nil {
+				received <- e
+				return
+			}
+			if len(packet.Payload) == 0 || (i > 0 && (packet.SequenceNumber != sequence+1 || packet.Timestamp-timestamp != 960)) {
+				received <- fmt.Errorf("discontinuous or empty audio at packet %d", i)
+				return
+			}
+			sequence, timestamp = packet.SequenceNumber, packet.Timestamp
+		}
+		received <- nil
+	})
 	offer, err := pc.CreateOffer(nil)
 	if err != nil {
 		t.Fatal(err)
