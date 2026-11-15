@@ -3,7 +3,7 @@ module afishk
 go 1.25.0
 
 require (
-	github.com/godbus/dbus/v5 v5.1.0
+	github.com/godbus/dbus/v5 v5.2.4
 	github.com/pion/transport/v5 v5.1.4
 	github.com/pion/webrtc/v4 v4.2.26
 )
