@@ -26,20 +26,19 @@ The server never runs as root. Prepare your VPN separately.
 ### 1. Linux tools
 
 ```bash
-./scripts/install-deps.sh
-./scripts/setup-ydotool.sh
+./scripts/setup-plasma.sh
 ```
 
-The first helper installs `ydotool`, FFmpeg, PipeWire's Pulse compatibility layer,
-Pulse tools and OpenSSL through DNF. Existing repositories are used. If FFmpeg is already available, the helper preserves that installation. Otherwise
+This helper installs Make, `ydotool`, FFmpeg, PipeWire's Pulse compatibility layer,
+and Pulse tools through DNF. Existing repositories are used. If FFmpeg is already available, the helper preserves that installation. Otherwise
 it requests `ffmpeg-free`; resolve any codec-package conflict using your distro's
 package tooling.
 FFmpeg must have the `libopus` encoder and `pulse` input.
 
-The second helper creates a root-owned ydotool daemon with a **0600 socket owned
+It then creates a root-owned ydotool daemon with a **0600 socket owned
 by your UID**, at `/run/afishk-input-UID/socket`. It does not add your account to
-`input` or grant broad device permissions. Only run it if you need this dedicated
-daemon; an existing ydotoold setup is also usable by setting `YDOTOOL_SOCKET`.
+`input` or grant broad device permissions. Pass `--existing-ydotool` to keep an
+existing daemon; set `YDOTOOL_SOCKET` in a user service override if its socket differs.
 `ydotoold --help` must support `--socket-path`, `--socket-own`, `--socket-perm`.
 
 ### 2. Build or extract a release
@@ -49,7 +48,7 @@ For source builds, install **Go 1.25+**, Git and Make (`sudo dnf install golang 
 ```bash
 make build
 ./bin/afishk version
-./scripts/install.sh
+make install
 ```
 
 For a release, download the Linux archive matching your CPU and `SHA256SUMS`,
@@ -58,13 +57,32 @@ verify it, extract it, enter its directory, then run:
 ```bash
 sha256sum --ignore-missing --check SHA256SUMS  # beside the downloaded archive
 # After extraction, inside afishk_vX.Y.Z_linux_amd64/:
-./scripts/install.sh ./bin/afishk
+make install
 ```
 
-The installer creates `~/.local/bin/afishk`, a user service and a KDE desktop
-entry for screenshot authorization. It preserves existing configuration and
-creates a random token in `~/.config/afishk/token`. It **does not start** control.
-Release packages include all runtime install scripts; Go is only needed to build.
+`make install` installs the built binary, a user service and a KDE desktop entry
+for screenshot authorization. It preserves existing configuration and **does not
+start** control. Run `make build` first for source checkouts; release archives
+include the Makefile and prebuilt binary, so Go is only needed to build.
+The target delegates to `scripts/install.sh`, which can also be run directly
+with the same environment variables.
+
+Install paths accept environment variables or Make arguments:
+
+```bash
+BINDIR="$HOME/.local/bin" CONFIGDIR="$HOME/.config/afishk" make install
+# Also supported: SYSTEMD_USER_DIR, APPLICATIONSDIR, BINARY (prebuilt binary).
+```
+
+Defaults honor `XDG_CONFIG_HOME` and `XDG_DATA_HOME`. Directory overrides must be
+absolute and use letters, digits, underscore, dot, slash or hyphen. Generated
+service and desktop entries use the selected binary and config paths. Keep the
+same overrides when upgrading. Custom service/application directories must be
+discoverable by systemd/KDE. With a custom CONFIGDIR, pass its path to setup and
+manual runs using `--config`.
+
+Existing installs can upgrade with `make build && make install`, then
+`systemctl --user restart afishk`; there is no need to rerun setup.
 
 ### 3. FishFry addon
 
@@ -91,14 +109,31 @@ your character and test the binding locally. No custom Lua addon is needed.
 
 ```bash
 ~/.local/bin/afishk inspect
+~/.local/bin/afishk setup
 ```
 
-You have five seconds to focus WoW. Copy the reported exact `class` and `title`
-into `~/.config/afishk/config.json` as `game_class` and `game_title`.
-Keep this configuration private. The example uses a placeholder class so input
-cannot work until you choose the actual target. Title changes cause rejection.
+`inspect` gives you five seconds to focus WoW. Paste its exact `class` and `title`
+into the setup prompts. Title changes cause rejection.
 
-For phone access, edit:
+`setup` (also `firstrun`) asks for the listener IP/port, browser DNS name or IP,
+TLS mode (`no`, `builtin`, or `proxy`), reachable IPv4 for audio, game identity,
+and Pulse source. Built-in TLS requires existing PEM certificate/key files;
+proxy mode expects externally managed HTTPS. DNS and certificate issuance remain
+external. For example, listening on `10.6.6.34:8787` with browser origin
+`http://suzuki:8787` and audio IP `10.6.6.34` allows that exact hostname.
+
+It writes a complete validated config and a cryptographically random 256-bit
+token beside it, both mode `0600`. The token itself is never printed; read the
+token file when signing in. An existing private token is reused. Setup refuses
+to overwrite an existing config; edit it manually or use
+`afishk setup --config /absolute/path/new-config.json` for a separate config.
+Ctrl-D cancels without creating files. Nothing is started automatically.
+
+The default config for both setup and normal runs is
+`${XDG_CONFIG_HOME:-$HOME/.config}/afishk/config.json`. To use a config in your
+working directory, explicitly pass `--config ./config.json`.
+
+For reference, a typical VPN configuration contains:
 
 ```json
 {
@@ -109,8 +144,8 @@ For phone access, edit:
 }
 ```
 
-These are fields to change in the **complete installed config**, not a replacement
-file. Substitute your actual desktop VPN IP and home path. Restrict TCP **8787**
+These are selected fields from the **complete generated config**, not a replacement
+file. Setup substitutes your actual addresses and paths. Restrict TCP **8787**
 and UDP **49160–49180** to your trusted VPN clients in your existing firewall.
 No public STUN/TURN service is used. Browser peers must be able to reach the
 advertised VPN IP directly over UDP. Only IPv4 media transport is supported.
@@ -200,26 +235,7 @@ FFmpeg is absent. CI explicitly installs it.
 | `scripts`, `packaging` | Install helpers, service templates and release archives |
 | `docs` | Architecture, limits, acceptance and upstream references |
 
-## GitHub releases
-
-Create an empty GitHub repository and push this source to it. For example:
-
-```bash
-git init -b main  # if this directory is not already initialized
-git add .
-git commit -m "Initial aFISHk implementation"
-git remote add origin git@github.com:YOUR_ACCOUNT/afishk.git
-git push -u origin main
-git tag v0.1.0
-git push origin v0.1.0
-```
-
-CI checks branches and PRs. A `v*` tag starts the release workflow: checks,
-Linux **amd64 + arm64** builds, tarballs and SHA-256 checksums, then attachment
-to a **draft release**. Publishing is a separate manual GitHub action. You can
-also dispatch it for an existing semver tag; reruns update draft assets and
-refuse to touch a published release. Actions are pinned to commit SHAs, with
-Dependabot configured for actions and Go modules.
+---
 
 See [architecture and limitations](docs/architecture.md),
 [validation](docs/validation.md) and [upstream references](docs/upstream.md).
