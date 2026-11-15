@@ -213,4 +213,4 @@ Dependabot configured for actions and Go modules.
 
 See [architecture and limitations](docs/architecture.md),
 [validation](docs/validation.md) and [upstream references](docs/upstream.md).
-Source is MIT licensed; external tools and FishFry retain their own licenses.
+Source is GNU GPL v3+ licensed; external tools and FishFry retain their own licenses.
