@@ -70,7 +70,7 @@ async function action(path) {
       $('screenshot').src = fresh; $('full-image').href = fresh; $('capture-panel').hidden = false;
       if (imageURL) URL.revokeObjectURL(imageURL); imageURL = fresh;
     }
-  } catch (error) { log(`${error.message.trim()} · Actions are never automatically retried.`, true); }
+  } catch (error) { log(error.message.trim(), true); }
   finally { busy = false; controls(); }
 }
 async function stopAudio(tellServer = true) {
@@ -123,5 +123,5 @@ $('audio-stop').addEventListener('click',() => stopAudio());
 $('log-sort').addEventListener('click', toggleLogSort);
 window.addEventListener('offline',async () => {connected=false; await stopAudio(false); controls(); showConnection('Network disconnected',true);});
 document.addEventListener('visibilitychange', () => { if (document.hidden) stopAudio(); });
-log('Prepare FishFry and leave WoW focused on your PC.');
+log('Prepare your character and leave WoW focused on your PC.');
 status(); setInterval(status,5000);

@@ -31,7 +31,7 @@ func (c *Controller) Target(ctx context.Context) (Window, error) {
 		return w, err
 	}
 	if w.Class != c.Class || w.Title != c.Title || w.ID == "" {
-		return Window{}, errors.New("WoW is not the approved focused window")
+		return Window{}, errors.New("WoW is not focused")
 	}
 	return w, nil
 }
