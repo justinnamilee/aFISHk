@@ -22,3 +22,14 @@ package:
 	./scripts/package.sh $(VERSION)
 clean:
 	rm -rf bin dist
+
+# Per-user installation. Override with environment variables or make VAR=value.
+BINDIR ?= $(HOME)/.local/bin
+CONFIGDIR ?= $(if $(XDG_CONFIG_HOME),$(XDG_CONFIG_HOME),$(HOME)/.config)/afishk
+SYSTEMD_USER_DIR ?= $(if $(XDG_CONFIG_HOME),$(XDG_CONFIG_HOME),$(HOME)/.config)/systemd/user
+APPLICATIONSDIR ?= $(if $(XDG_DATA_HOME),$(XDG_DATA_HOME),$(HOME)/.local/share)/applications
+BINARY ?= bin/afishk
+export BINDIR CONFIGDIR SYSTEMD_USER_DIR APPLICATIONSDIR BINARY
+.PHONY: install
+install:
+	./scripts/install.sh

@@ -4,7 +4,7 @@ PartOf=graphical-session.target
 After=graphical-session.target pipewire.service pipewire-pulse.service
 [Service]
 Type=simple
-ExecStart=@HOME@/.local/bin/afishk --config @CONFIG@/config.json
+ExecStart=@BINDIR@/afishk --config @CONFIG@/config.json
 Environment=YDOTOOL_SOCKET=/run/afishk-input-@UID@/socket
 Restart=on-failure
 RestartSec=3

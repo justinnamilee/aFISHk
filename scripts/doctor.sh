@@ -4,7 +4,7 @@ fail=0
 check() { if "$@"; then printf 'OK: %s\n' "$*"; else printf 'FAIL: %s\n' "$*" >&2; fail=1; fi; }
 [[ ${XDG_SESSION_TYPE:-} == wayland ]] || { echo 'FAIL: expected logged-in Wayland session'; fail=1; }
 [[ ${XDG_CURRENT_DESKTOP:-} == *KDE* ]] || { echo 'FAIL: expected KDE Plasma'; fail=1; }
-for tool in ffmpeg pactl ydotool ydotoold openssl; do check command -v "$tool"; done
+for tool in ffmpeg pactl ydotool ydotoold; do check command -v "$tool"; done
 if command -v ffmpeg >/dev/null; then
   encoders=$(ffmpeg -hide_banner -encoders 2>/dev/null)
   [[ $encoders == *libopus* ]] || { echo 'FAIL: FFmpeg needs libopus encoder'; fail=1; }

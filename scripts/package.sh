@@ -11,7 +11,7 @@ for arch in amd64 arm64; do
   root="$stage/$name"
   mkdir -p "$root/bin"
   CGO_ENABLED=0 GOOS=linux GOARCH=$arch go build -trimpath -ldflags="-s -w -X main.version=$version" -o "$root/bin/afishk" ./cmd/afishk
-  cp README.md LICENSE config.example.json "$root/"
+  cp Makefile README.md LICENSE config.example.json "$root/"
   cp -R scripts packaging docs "$root/"
   tar -czf "dist/$name.tar.gz" -C "$stage" "$name"
 done
