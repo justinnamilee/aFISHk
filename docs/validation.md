@@ -16,10 +16,39 @@ No target-desktop acceptance results are claimed by this repository.
 | G2 permission | Start using installed binary and desktop entry | Capture needs no request-time interaction; no global permission bypass |
 | G3 audio | Play desktop sound then real fishing splashes; listen in Android Chrome over VPN | Both local and phone playback work; practical manual bite response |
 | G3 recovery | Stop/start audio, change default output device, reconnect | No stale FFmpeg process/peer; new session captures chosen output |
+| G3 mobile continuity | Compare desktop Chrome and Android Chrome for at least five minutes each on the same LAN, then repeat over the normal VPN; include game ambience, splashes and a screenshot request during playback | No recurring gaps; note any added delay and whether manual bite response is still practical |
 | G4 transport | Test configured HTTP/PEM HTTPS, auth on every endpoint and any proxy | Controls and PNG work, direct UDP audio works, wrong token rejected |
 | G5 loss | Drop phone network or close/background page; wait at least 20 seconds; return | Controls show disconnected; audio stops; Listen can establish a new session |
 
 Useful diagnostics:
+
+For choppy audio, record the phone model, Android/Chrome versions, Wi-Fi or
+cellular path, VPN use, and whether Bluetooth headphones are involved. Compare
+the phone speaker with Bluetooth to separate output-device issues. Keep the page
+in the foreground; backgrounding deliberately stops the session.
+
+If gaps remain, use Chrome remote debugging (`chrome://inspect/#devices` on the
+desktop) to inspect the phone page. While audio is connected, run this in its
+DevTools console twice, about 30 seconds apart:
+
+```javascript
+console.table([...(await pc.getStats()).values()]
+  .filter(s => s.type === 'inbound-rtp' && s.kind === 'audio')
+  .map(s => ({timestamp: s.timestamp, packetsReceived: s.packetsReceived,
+    packetsLost: s.packetsLost, jitterSeconds: s.jitter,
+    concealedSamples: s.concealedSamples, totalSamplesReceived: s.totalSamplesReceived,
+    jitterBufferDelay: s.jitterBufferDelay,
+    jitterBufferEmittedCount: s.jitterBufferEmittedCount})));
+```
+
+Loss and concealment increases help identify transport/late-packet problems;
+they do not establish which device or network hop caused them. For the interval,
+divide the increase in `jitterBufferDelay` by the increase in
+`jitterBufferEmittedCount` to get average buffer delay in seconds. Save the
+before/after readings with the acceptance outcome. Synthetic RTP tests do not
+establish Android playback quality or end-to-end latency.
+
+Service diagnostics:
 
 ```bash
 ./scripts/doctor.sh

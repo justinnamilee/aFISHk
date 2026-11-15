@@ -147,6 +147,13 @@ then tap **Fish** manually when you hear a bite. The UI reports only whether it
 sent F; it does not know whether a cast or catch succeeded. A separate screenshot
 button saves the latest successful PNG; open it full size for mobile zoom.
 
+Audio requests a 120 ms receive jitter buffer where the browser supports it,
+trading a little delay for smoother Wi-Fi/VPN playback. Other browsers keep
+their adaptive defaults. Opus permits in-band loss recovery when its encoding
+mode supports it, and FFmpeg flushes each 20 ms RTP packet. These settings cannot
+eliminate sustained network loss. See the [mobile audio checks](docs/validation.md)
+for comparisons and diagnostics if Android playback still has gaps.
+
 ## HTTPS and reverse proxies
 
 For built-in HTTPS, set `tls_cert` and `tls_key` to readable PEM files and set
