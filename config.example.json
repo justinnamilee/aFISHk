@@ -1,0 +1,17 @@
+{
+  "listen": "127.0.0.1:8787",
+  "public_origin": "",
+  "allow_unauthenticated_lan": false,
+  "token_file": "",
+  "tls_cert": "",
+  "tls_key": "",
+  "cache_dir": "/home/YOUR_USER/.cache/afishk",
+  "game_class": "REPLACE_WITH_INSPECT_CLASS",
+  "game_title": "World of Warcraft",
+  "ydotool": "/usr/bin/ydotool",
+  "ffmpeg": "/usr/bin/ffmpeg",
+  "pulse_source": "@DEFAULT_MONITOR@",
+  "ice_address": "",
+  "udp_min": 49160,
+  "udp_max": 49180
+}

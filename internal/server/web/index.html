@@ -1,0 +1,9 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>aFISHk · Fishing companion</title><link rel="stylesheet" href="/style.css"><script src="/app.js" defer></script></head>
+<body><main><header><span class="eyebrow">WOW FOREVER · MANUAL FISHING</span><h1>aFISHk<span>At the water’s edge.</span></h1><p>Listen for a bite. Tap when you’re ready.</p></header>
+<p id="connection" role="status">Connecting…</p>
+<button id="fish" disabled><span class="fish-icon" aria-hidden="true">🎣</span><strong>Fish</strong><small>One tap · one F key</small></button>
+<section class="tools" aria-label="Companion tools"><button id="audio-start" disabled>Listen to desktop</button><button id="audio-stop" disabled>Stop audio</button><button id="capture" disabled>Fresh screenshot</button></section>
+<audio id="audio" autoplay playsinline controls></audio><p id="audio-state" role="status">Audio stopped</p><p id="feedback" role="status">Prepare FishFry and leave WoW focused on your PC.</p>
+<section id="capture-panel" hidden><h2>Latest successful capture</h2><a id="full-image" href="/api/screenshot.png" target="_blank" rel="noopener">Open full size to zoom</a><img id="screenshot" alt="Latest successful WoW window capture"></section>
+<footer>Manual input only. Desktop audio includes other applications.<br>Keep this page in the foreground while listening.</footer></main></body></html>

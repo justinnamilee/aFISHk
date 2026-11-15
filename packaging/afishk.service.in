@@ -1,0 +1,15 @@
+[Unit]
+Description=aFISHk manual fishing companion
+PartOf=graphical-session.target
+After=graphical-session.target pipewire.service pipewire-pulse.service
+[Service]
+Type=simple
+ExecStart=@HOME@/.local/bin/afishk --config @CONFIG@/config.json
+Environment=YDOTOOL_SOCKET=/run/afishk-input-@UID@/socket
+Restart=on-failure
+RestartSec=3
+UMask=0077
+NoNewPrivileges=true
+# KWin must read our transient script in the shared /tmp. Do not use PrivateTmp.
+[Install]
+WantedBy=graphical-session.target

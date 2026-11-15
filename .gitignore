@@ -1,0 +1,10 @@
+/bin/
+/dist/
+/config.json
+*.pem
+*.key
+*.pfx
+*.p12
+/token
+*.png
+*.zip
