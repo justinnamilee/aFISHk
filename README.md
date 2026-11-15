@@ -170,23 +170,16 @@ These checks need your actual desktop and phone; automated tests cannot establis
 KWin permissions, FishFry behavior, or audible latency on your VPN.
 
 - **Input:** with WoW focused, one tap should cause one cast/reel action. Focus a
-  different app, then lock the desktop: taps must be rejected without typing F.
+  different app, or lock the desktop: taps must be rejected without typing F.
 - **Capture:** take a fresh game screenshot, then try with another app focused.
-  The second request must fail and retain the previous image. Capture must work
+  The second request should fail and retain the previous image. Capture must work
   through the installed service without a permission prompt or desktop fallback.
-- **Audio:** listen for at least five minutes on Android Chrome over your normal
-  VPN, including actual splashes and a screenshot request. Confirm that delay
-  and continuity allow you to react. Try Stop/Listen again.
+- **Audio:** listen for at least five minutes on Android Chrome / mobile browser
+  over your VPN (or home network), including actual splashes. Confirm that delay
+  and continuity allow you to react. Try Stop/Listen and test again.
 - **Recovery:** background the phone page or drop its network for over 20 seconds.
   Return and restart listening. Restart the desktop service and confirm the page
   reconnects and controls recover.
-- **UI and access:** check the larger fishing button and both log sort orders in
-  portrait mode. Verify that a wrong token is rejected and web/audio work through
-  only your intended firewall rules.
-
-Focus verification and key injection are separate operations: a focus change
-between them remains a small race. Avoid local desktop use or apps that steal
-focus while fishing remotely. The app never changes focus itself.
 
 ## Updates and service management
 
