@@ -24,12 +24,14 @@ jobs:
         with:
           go-version-file: go.mod
       - name: Install integration test tools
-        run: sudo apt-get update && sudo apt-get install -y ffmpeg shellcheck
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg shellcheck curl unzip
       - name: Verify module files
         run: |
           go mod tidy
           git diff --exit-code -- go.mod go.sum
           go mod verify
+      - name: Install formatters
+        run: make format-tools
       - name: Format, vet and race tests
         run: make check
       - name: Shell checks

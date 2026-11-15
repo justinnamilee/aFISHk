@@ -14,7 +14,6 @@ import (
 	"syscall"
 	"time"
 
-	"afishk/internal/addon"
 	"afishk/internal/audio"
 	"afishk/internal/config"
 	"afishk/internal/desktop"
@@ -42,23 +41,6 @@ func run() error {
 		}
 		return setup.Run(os.Stdin, os.Stdout, *path)
 	}
-	if len(os.Args) > 1 && os.Args[1] == "install-addon" {
-		args := flag.NewFlagSet("install-addon", flag.ContinueOnError)
-		archive := args.String("zip", "", "downloaded FishFry ZIP")
-		wow := args.String("wow-dir", "", "game-client directory containing Interface/AddOns")
-		if err := args.Parse(os.Args[2:]); err != nil {
-			return err
-		}
-		if *archive == "" || *wow == "" {
-			return errors.New("usage: afishk install-addon --zip FishFry.zip --wow-dir /path/to/game")
-		}
-		if err := addon.Install(*archive, *wow); err != nil {
-			return err
-		}
-		fmt.Println("FishFry installed; enable it in WoW and bind F manually")
-		return nil
-	}
-
 	if len(os.Args) > 1 && os.Args[1] == "version" {
 		fmt.Println("afishk", version)
 		return nil
@@ -80,6 +62,9 @@ func run() error {
 	path := flag.String("config", setup.DefaultPath(), "configuration file")
 	check := flag.Bool("check", false, "validate configuration without starting")
 	flag.Parse()
+	if flag.NArg() != 0 {
+		return fmt.Errorf("unknown command %q; use setup, inspect, version, or --help", flag.Arg(0))
+	}
 	c, err := config.Load(*path)
 	if err != nil {
 		return err

@@ -1,0 +1,14 @@
+{
+  "lineWidth": 100,
+  "indentWidth": 2,
+  "newLineKind": "lf",
+  "typescript": {
+    "quoteStyle": "preferSingle"
+  },
+  "includes": ["internal/server/web/**/*.{html,css,js}"],
+  "plugins": [
+    "https://plugins.dprint.dev/typescript-0.101.0.wasm@4401b6e344db92a5e661a05958267d4b3068fa82c89067e9e8ffe849798644f4",
+    "https://plugins.dprint.dev/g-plane/malva-v0.16.1.wasm@ea107342885e7a337b5da1ddf67101400e2621732556ec761f66d00208e74453",
+    "https://plugins.dprint.dev/g-plane/markup_fmt-v0.27.6.wasm@93dd0c870b60431ceea59f055792fee4a353868223c813d3a44414b31d1df602"
+  ]
+}
