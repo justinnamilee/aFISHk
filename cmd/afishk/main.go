@@ -19,6 +19,7 @@ import (
 	"afishk/internal/config"
 	"afishk/internal/desktop"
 	"afishk/internal/server"
+	"afishk/internal/setup"
 )
 
 var version = "dev"
@@ -30,6 +31,17 @@ func main() {
 	}
 }
 func run() error {
+	if len(os.Args) > 1 && (os.Args[1] == "setup" || os.Args[1] == "firstrun") {
+		args := flag.NewFlagSet("setup", flag.ContinueOnError)
+		path := args.String("config", setup.DefaultPath(), "new configuration file (never overwrites)")
+		if err := args.Parse(os.Args[2:]); err != nil {
+			return err
+		}
+		if args.NArg() != 0 {
+			return errors.New("usage: afishk setup [--config PATH]")
+		}
+		return setup.Run(os.Stdin, os.Stdout, *path)
+	}
 	if len(os.Args) > 1 && os.Args[1] == "install-addon" {
 		args := flag.NewFlagSet("install-addon", flag.ContinueOnError)
 		archive := args.String("zip", "", "downloaded FishFry ZIP")
@@ -65,7 +77,7 @@ func run() error {
 		}
 		return json.NewEncoder(os.Stdout).Encode(w)
 	}
-	path := flag.String("config", "config.json", "configuration file")
+	path := flag.String("config", setup.DefaultPath(), "configuration file")
 	check := flag.Bool("check", false, "validate configuration without starting")
 	flag.Parse()
 	c, err := config.Load(*path)
