@@ -118,9 +118,13 @@ func (m *Manager) Start(ctx context.Context, offer webrtc.SessionDescription) (w
 		return webrtc.SessionDescription{}, ctx.Err()
 	}
 	target := fmt.Sprintf("rtp://127.0.0.1:%d?pkt_size=1200", conn.LocalAddr().(*net.UDPAddr).Port)
+	// Allow Opus to use in-band loss recovery when its selected mode supports it.
+	// Restricted lowdelay is CELT-only and cannot provide SILK in-band FEC.
+	// Flush each 20 ms packet rather than adding muxer buffering before WebRTC.
 	cmd := exec.CommandContext(mediaCtx, m.config.FFmpeg, "-nostdin", "-hide_banner", "-loglevel", "error",
-		"-f", "pulse", "-i", m.config.PulseSource, "-vn", "-c:a", "libopus", "-application", "lowdelay",
-		"-frame_duration", "20", "-ar", "48000", "-ac", "2", "-b:a", "96000", "-payload_type", "111", "-f", "rtp", target)
+		"-f", "pulse", "-i", m.config.PulseSource, "-vn", "-c:a", "libopus", "-application", "audio",
+		"-fec:a", "1", "-packet_loss", "10", "-frame_duration", "20", "-ar", "48000", "-ac", "2", "-b:a", "96000",
+		"-payload_type", "111", "-flush_packets", "1", "-f", "rtp", target)
 	cmd.Stdout = io.Discard
 	cmd.Stderr = io.Discard
 	if err = cmd.Start(); err != nil {
