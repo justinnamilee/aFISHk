@@ -19,6 +19,10 @@ No target-desktop acceptance results are claimed by this repository.
 | G3 mobile continuity | Compare desktop Chrome and Android Chrome for at least five minutes each on the same LAN, then repeat over the normal VPN; include game ambience, splashes and a screenshot request during playback | No recurring gaps; note any added delay and whether manual bite response is still practical |
 | G4 transport | Test configured HTTP/PEM HTTPS, auth on every endpoint and any proxy | Controls and PNG work, direct UDP audio works, wrong token rejected |
 | G5 loss | Drop phone network or close/background page; wait at least 20 seconds; return | Controls show disconnected; audio stops; Listen can establish a new session |
+| UI layout | Open on desktop and Android Chrome, including a narrow portrait viewport | Title, Fish hint, tools, audio player and activity log fit without horizontal scrolling; keyboard focus is visible |
+| UI connection | Stop/restart the desktop service while the page stays open | Dot changes green/red, controls disable/recover, and the log records transitions without an entry for every poll; green means service reachable, not verified game focus |
+| UI history | Tap Fish repeatedly, trigger a wrong-focus rejection, start/stop audio, and request a screenshot | Timestamped `inf:` / `err:` entries retain earlier messages; one tap still sends one action; errors appear as literal text |
+| UI scrolling | Generate over 100 messages; scroll up while more arrive, then return to the bottom | At most 100 entries remain; new entries follow only when already at the bottom; refresh starts a new page session |
 
 Useful diagnostics:
 
