@@ -15,6 +15,9 @@ Chrome over your VPN still require the [desktop acceptance checks](docs/validati
 No automatic cast/reel, bite detection, timers, movement or game telemetry.
 Use Moonlight separately if you need to reposition or recover the character.
 
+<p align="center"><img src=".github/screenshot.png" alt="Project preview" width="700" /></p>
+
+
 ## Install
 
 Run these commands **on your Nobara desktop as your normal logged-in user**.
