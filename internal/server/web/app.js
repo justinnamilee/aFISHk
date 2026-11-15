@@ -2,9 +2,12 @@
 const $ = (id) => document.getElementById(id);
 let csrf = '', connected = false, pc = null, lease = null, busy = false, audioBusy = false, imageURL = null;
 const LOG_LIMIT = 100;
+let logDescending = true;
 function log(message, error = false) {
   const container = $('activity-log');
-  const atBottom = container.scrollHeight - container.scrollTop - container.clientHeight <= 8;
+  const follow = logDescending ? container.scrollTop <= 8 : container.scrollHeight - container.scrollTop - container.clientHeight <= 8;
+  const previousTop = container.scrollTop;
+  const previousHeight = container.scrollHeight;
   const entry = document.createElement('p');
   entry.className = error ? 'log-entry error' : 'log-entry';
   const now = new Date();
@@ -12,12 +15,28 @@ function log(message, error = false) {
   time.dateTime = now.toISOString();
   time.textContent = now.toLocaleTimeString([], {hour12: false});
   entry.append(time, document.createTextNode(` ${error ? 'err' : 'inf'}: ${message}`));
-  container.append(entry);
-  const previousHeight = container.scrollHeight;
-  while (container.childElementCount > LOG_LIMIT) container.firstElementChild.remove();
-  // Follow new entries unless the user has scrolled up to read earlier ones.
-  if (atBottom) container.scrollTop = container.scrollHeight;
-  else container.scrollTop -= previousHeight - container.scrollHeight;
+  if (logDescending) container.prepend(entry);
+  else container.append(entry);
+  const insertedHeight = container.scrollHeight - previousHeight;
+  const beforeTrim = container.scrollHeight;
+  // Keep the most recent entries regardless of the selected display order.
+  while (container.childElementCount > LOG_LIMIT) {
+    (logDescending ? container.lastElementChild : container.firstElementChild).remove();
+  }
+  // Follow the newest edge unless the user is reading older entries.
+  if (follow) container.scrollTop = logDescending ? 0 : container.scrollHeight;
+  else container.scrollTop = previousTop + (logDescending ? insertedHeight : container.scrollHeight - beforeTrim);
+}
+function toggleLogSort() {
+  logDescending = !logDescending;
+  const container = $('activity-log');
+  container.replaceChildren(...Array.from(container.children).reverse());
+  container.scrollTop = logDescending ? 0 : container.scrollHeight;
+  const button = $('log-sort');
+  button.firstElementChild.textContent = logDescending ? '▼' : '▲';
+  const label = logDescending ? 'Newest first. Sort oldest first' : 'Oldest first. Sort newest first';
+  button.setAttribute('aria-label', label);
+  button.title = label;
 }
 function showConnection(message, error = false) {
   const indicator = $('connection');
@@ -101,6 +120,7 @@ $('fish').addEventListener('click', () => action('/api/fish'));
 $('capture').addEventListener('click', () => action('/api/screenshot'));
 $('audio-start').addEventListener('click',startAudio);
 $('audio-stop').addEventListener('click',() => stopAudio());
+$('log-sort').addEventListener('click', toggleLogSort);
 window.addEventListener('offline',async () => {connected=false; await stopAudio(false); controls(); showConnection('Network disconnected',true);});
 document.addEventListener('visibilitychange', () => { if (document.hidden) stopAudio(); });
 log('Prepare FishFry and leave WoW focused on your PC.');
