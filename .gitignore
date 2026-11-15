@@ -7,4 +7,5 @@
 *.p12
 /token
 *.png
+!.github/screenshot.png
 *.zip
