@@ -4,18 +4,17 @@
 Hear the game through your browser, tap to cast or reel, and take a screenshot
 when you want to check the scene. Each tap sends one **F** to the focused WoW
 window through FishFry. There is no automatic casting, bite detection or input
-timer. Use Moonlight separately to move your character or manage the desktop.
+timer. Use Moonlight/Parsec/TeamViewer/Rustdesk/VNC/Remote Desktop separately to
+manage your character or the desktop.
 
 <p align="center"><img src=".github/screenshot.png" alt="aFISHk mobile fishing controls" width="700" /></p>
 
 ## Requirements
 
-On either platform:
-
 - WoW: Forever and [FishFry Forever](https://www.curseforge.com/wow/addons/fishfry-forever),
   installed by you, with manual cast/reel bound to **F**.
-- A signed-in, unlocked desktop with WoW focused. Locking, switching users or
-  disconnecting the desktop session prevents Windows input and screenshots.
+- A signed-in, unlocked desktop with WoW focused.
+- Some means to keep the desktop session awake and signed in.
 - A phone browser and your own LAN/VPN connection. You manage VPN, DNS, firewall
   rules, the addon and sleep/lock settings.
 - Direct IPv4 UDP connectivity for audio, in addition to the web connection.
@@ -24,8 +23,7 @@ On either platform:
 
 **Windows 11 on an Intel/AMD x64 PC.** Run WoW and aFISHk as the same normal user;
 do not use “Run as administrator.” Use WoW in windowed or borderless mode for
-screenshots. FFmpeg is bundled; no AutoIt, Go, Make or extra audio software is
-required. Windows ARM builds are not provided.
+screenshots.  Windows ARM builds are not provided.
 
 Audio captures the **Windows default playback device**, including other desktop
 sound. After changing that device, stop listening and start listening again.
@@ -34,7 +32,7 @@ sound. After changing that device, stop listening and start listening again.
 
 **Nobara/Fedora, KDE Plasma 6 and Wayland**, with PipeWire Pulse compatibility,
 FFmpeg supporting `pulse` input and `libopus`, and ydotool. The Linux setup helper
-installs runtime dependencies. Other Linux desktop environments are not supported.
+installs runtime dependencies. Other Linux desktop environments are not yet supported.
 Audio captures the selected Pulse monitor, including other desktop sound.
 
 ## Install on Windows
@@ -52,8 +50,8 @@ Audio captures the selected Pulse monitor, including other desktop sound.
    and that password.
 
 The installer does not open firewall ports or install FishFry. Windows may warn
-about an unsigned installer; only install downloads you trust from this project's
-releases. `SHA256SUMS` is provided alongside the downloads.
+about an unsigned installer; **only install downloads you trust from this project's
+releases**. `SHA256SUMS` is provided alongside the downloads.
 
 | Item | Location |
 | --- | --- |
@@ -75,7 +73,8 @@ startup entry but keeps your configuration, password and cached files.
 ## Install on Linux
 
 Run commands in your logged-in Plasma session as your normal user. Only system
-preparation uses sudo; aFISHk runs as you.
+preparation uses sudo; aFISHk runs as you with no special permissions (except
+pressing **F**).
 
 ### From a release
 
@@ -91,12 +90,11 @@ cd afishk_v1.0.0_linux_amd64
 
 Replace the version and architecture with your download. Releases need no Go,
 Make, compiler or formatter. Existing FFmpeg is preserved; otherwise setup
-requests `ffmpeg-free` from your enabled repositories. Resolve codec-package
-conflicts through your distro.
+requests `ffmpeg-free` from your enabled repositories.
 
 If you already manage ydotool, add `--existing-ydotool`. Set `YDOTOOL_SOCKET` in a
 `systemctl --user edit afishk` override if needed; the dedicated daemon's default
-socket is `/run/afishk-input-UID/socket`.
+socket is `/run/afishk-input-<UID>/socket`.
 
 ### From source
 
@@ -176,14 +174,14 @@ LAN/VPN clients:
 | TCP | `8787` | Web page, controls, screenshots and audio negotiation |
 | UDP | `49160–49180` | WebRTC audio |
 
-The phone must resolve the hostname you chose and reach the desktop's audio IPv4.
-`public_origin` must exactly match the browser URL's scheme, hostname and port,
-without a path. `ice_address` is the desktop IPv4 reachable by the phone. An HTTP
-reverse proxy does not carry the UDP audio stream; there is no public STUN/TURN
-relay. Your phone's UDP source port may differ from the desktop destination range.
+The client (phone, etc) must resolve the hostname you chose and reach the desktop's
+audio IPv4.  `public_origin` must exactly match the browser URL's scheme, hostname
+and port, without a path. `ice_address` is the desktop IPv4 reachable by the client.
+An HTTP reverse proxy does not carry the UDP audio stream; there is no public STUN/TURN
+relay.
 
-Open your configured browser URL. Sign in with any username and your generated
-password. Tap **Listen to desktop**; if autoplay is blocked, tap Play in the
+Open your configured browser URL. Sign in with **any username** and your generated
+token as password. Tap **Listen to desktop**; if autoplay is blocked, tap Play in the
 audio player. Keep the page in the foreground. Tap the fishing button to cast,
 listen for a bite, then tap to reel. **Fresh screenshot** captures the game window.
 Failed captures preserve the previous successful image. The green dot indicates
@@ -214,8 +212,8 @@ the user service, set `YDOTOOL_SOCKET=/run/afishk-input-$(id -u)/socket`, and ru
 The browser wizard supports plain HTTP on a trusted LAN/VPN, built-in HTTPS with
 your own PEM certificate/key files, or an external HTTPS proxy. **Basic
 authentication alone does not encrypt HTTP.** For a proxy, bind the app to
-loopback and preserve Host, Origin, Authorization and X-CSRF-Token headers.
-Forwarded headers are not trusted. UDP media still needs its direct route.
+loopback/lan and preserve Host, Origin, Authorization and X-CSRF-Token headers.
+Forwarded headers are not trusted. UDP media still needs its **direct** route.
 Certificate issuance and renewal are your responsibility; restart after replacing
 certificate files.
 
@@ -241,4 +239,4 @@ services. Use the same overrides for upgrades, and pass a custom config path via
 - Linux integration uses [KWin](https://develop.kde.org/docs/plasma/kwin/),
   [ydotool](https://github.com/ReimuNotMoe/ydotool) and [PipeWire](https://pipewire.org/).
 - Audio transport uses [Pion WebRTC](https://github.com/pion/webrtc).
-  Dependencies retain their own licenses and copyrights.
+- Dependencies retain their own licenses and copyrights.
