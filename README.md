@@ -84,9 +84,7 @@ aFISHk**. Binary replacement is atomic, including while the old binary is runnin
 restart explicitly after validation to use the new version.
 
 Use `--skip-setup` on the release installer for updates or an already-prepared
-desktop. Repeated installation is supported. The old `scripts/install.sh`,
-`scripts/setup-plasma.sh` and `scripts/doctor.sh` source entry points remain as
-compatibility wrappers; they are not shipped in releases.
+desktop.
 
 ### 3. Configure the connection
 
@@ -110,9 +108,9 @@ and audio source. For a routed LAN behind your VPN, example answers are:
 | Desktop IPv4 for audio | `10.6.6.34` |
 | Pulse source | `@DEFAULT_MONITOR@` |
 
-Use your own addresses. The phone must resolve the hostname and reach the audio
-IPv4. `public_origin` must match the URL you actually open, including scheme and
-port, without a path. The default loopback listener cannot accept remote clients.
+Use your own addresses. Your client (phone, etc) must resolve the hostname and reach
+the audio IPv4 address. `public_origin` must match the URL you actually open, including
+scheme and port, without a path. The default loopback listener cannot accept remote clients.
 
 Setup writes private `config.json` and `token` files under
 `${XDG_CONFIG_HOME:-$HOME/.config}/afishk/`. It refuses to overwrite an existing
@@ -141,7 +139,7 @@ To use a smaller UDP port range, edit these fields in your existing config, then
 ```
 
 The range is inclusive; equal values select one port, which must be available.
-`ice_address` must be the desktop IPv4 reachable by your device. To reiterate,
+`ice_address` must be the "desktop IPv4" reachable by your device. To reiterate,
 there is no public STUN/TURN service, and an HTTP reverse proxy does not carry
 the audio stream.
 
@@ -210,8 +208,7 @@ systemctl --user restart afishk
 journalctl --user -u afishk -f
 ```
 
-Do not rerun `afishk setup` for an existing config. Use the same directory
-overrides for updates as on first install.
+Do not rerun `afishk setup` for an existing config, only new installs.
 
 To disable startup, use `systemctl --user disable --now afishk`. If no longer
 needed, also disable the dedicated input daemon with
@@ -237,7 +234,7 @@ export YDOTOOL_SOCKET="/run/afishk-input-$(id -u)/socket"
 ~/.local/bin/afishk
 ```
 
-Do not run the app as root to fix session-bus or audio access. Capture supports
+**Do not run the app as root to fix session-bus or audio access.** Capture supports
 SDR 32-bit image layouts; unsupported HDR formats are rejected. Failed captures
 preserve the last successful PNG in the private cache directory.
 
@@ -325,29 +322,3 @@ workflow refuses to modify published releases.
   - [PipeWire](https://pipewire.org/), and
   - [Pion WebRTC](https://github.com/pion/webrtc).
   - These projects retain their own licenses.
-
-### Adding a desktop backend
-
-Backends are compiled-in Go implementations selected in `internal/platform`,
-not runtime-loaded plugins. Linux KDE Plasma Wayland remains the only supported
-platform; existing JSON configuration keys and audio settings are unchanged.
-
-| Interface | Contract |
-| --- | --- |
-| `desktop.WindowSource` | Return the focused native window only after verifying the session is unlocked; fail if either state is unknown. |
-| `desktop.Capturer` | Capture the supplied opaque window ID only; never fall back to an active window or desktop. |
-| `desktop.Input` | Send one F press/release, with no activation or key-down retries; permit best-effort key-up on failure. |
-| `audio.Capture` / `audio.Process` | Start an Opus RTP producer; context cancellation must terminate it and unblock its single `Wait` call. |
-
-The shared desktop controller owns exact class/title matching, action exclusion,
-input throttling and private screenshot persistence. The shared audio manager
-owns WebRTC, UDP port bounds, the single-peer limit and lease cleanup. The HTTP
-server consumes interfaces for both desktop actions and audio sessions.
-
-Add implementations behind OS-specific files/build constraints, wire them in
-`internal/platform`, and add platform defaults/validation in `internal/config`
-and prompts in `internal/setup`. KWin, ydotool and Pulse/FFmpeg implementations
-are Linux-only. Non-Linux builds explicitly reject desktop startup and setup;
-a successful Windows cross-build is an architecture check, **not Windows support**.
-Preserve the contracts above and add backend-specific acceptance checks before
-supporting another platform.
