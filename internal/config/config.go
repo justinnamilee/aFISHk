@@ -10,9 +10,11 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strconv"
 )
 
 type Config struct {
+	GameExecutable          string `json:"game_executable,omitempty"`
 	Listen                  string `json:"listen"`
 	PublicOrigin            string `json:"public_origin"`
 	AllowUnauthenticatedLAN bool   `json:"allow_unauthenticated_lan"`
@@ -64,9 +66,13 @@ func Load(path string) (Config, error) {
 }
 
 func (c Config) Validate() error {
-	host, _, err := net.SplitHostPort(c.Listen)
+	host, port, err := net.SplitHostPort(c.Listen)
 	if err != nil {
 		return fmt.Errorf("listen: %w", err)
+	}
+	n, portErr := strconv.Atoi(port)
+	if portErr != nil || n < 1 || n > 65535 {
+		return errors.New("listen port must be between 1 and 65535")
 	}
 	ip := net.ParseIP(host)
 	if ip == nil {
