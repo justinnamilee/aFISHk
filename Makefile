@@ -4,29 +4,31 @@ SHFMT ?= shfmt
 DPRINT := ./.tools/dprint
 GOLANGCI_VERSION := v2.11.3
 SHFMT_VERSION := v3.12.0
+SHELL_SCRIPTS := $(wildcard scripts/*.sh scripts/linux/*.sh tests/*.sh)
 .PHONY: build fmt fmt-check lint test check tools format-tools package clean
 build:
 	$(GO) build -trimpath -o bin/afishk ./cmd/afishk
 fmt:
 	$(GOFMT) -w cmd internal
-	$(SHFMT) -w -i 2 -ci scripts/*.sh
+	$(SHFMT) -w -i 2 -ci $(SHELL_SCRIPTS)
 	$(DPRINT) fmt
 fmt-check:
 	@command -v $(GOFMT) >/dev/null
 	@files="$$($(GOFMT) -l cmd internal)" || exit; \
 		test -z "$$files" || (echo 'Run make fmt'; exit 1)
-	$(SHFMT) -d -i 2 -ci scripts/*.sh
+	$(SHFMT) -d -i 2 -ci $(SHELL_SCRIPTS)
 	$(DPRINT) check
 lint:
 	golangci-lint run
-	shellcheck scripts/*.sh
+	shellcheck $(SHELL_SCRIPTS)
 
 test:
 	$(GO) test -race -count=1 ./...
 check: fmt-check
 	$(GO) vet ./...
 	$(GO) test -race -count=1 ./...
-	@for file in scripts/*.sh; do bash -n "$$file" || exit; done
+	@for file in $(SHELL_SCRIPTS); do bash -n "$$file" || exit; done
+	./tests/install.sh
 
 tools: format-tools
 	$(GO) install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_VERSION)
@@ -48,4 +50,4 @@ BINARY ?= bin/afishk
 export BINDIR CONFIGDIR SYSTEMD_USER_DIR APPLICATIONSDIR BINARY
 .PHONY: install
 install:
-	./scripts/install.sh
+	./scripts/linux/install.sh
