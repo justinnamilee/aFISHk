@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>aFISHk setup</title>
+    <link rel="stylesheet" href="style.css">
+  </head>
+  <body>
+    <main>
+      <h1>aFISHk</h1>
+      <p class="lead">Set up your fishing companion</p>
+      <p>
+        This page runs only on this computer. Have WoW open, with FishFry installed and manual
+        cast/reel bound to F.
+      </p>
+      <section id="setup">
+        <h2>1. Identify your game</h2>
+        <p>
+          Click below, then switch to WoW within five seconds. Keep it focused until the countdown
+          finishes.
+        </p>
+        <button id="detect" type="button">Identify WoW</button>
+        <p id="target" role="status">No game selected</p>
+        <h2>2. Connect your phone</h2>
+        <form id="settings">
+          <label>Desktop IP address <input
+              id="ip"
+              list="addresses"
+              required
+              placeholder="192.168.1.20"
+            ></label><datalist id="addresses"></datalist>
+          <label>Web port <input
+              id="port"
+              type="number"
+              min="1"
+              max="65535"
+              value="8787"
+              required
+            ></label>
+          <label>Browser address <input
+              id="origin"
+              type="url"
+              required
+              placeholder="http://192.168.1.20:8787"
+            ></label>
+          <label>Desktop IPv4 reachable by your phone <input id="audio_ip" required></label>
+          <p>
+            Use an address reachable through your LAN/VPN. You manage the VPN, DNS and firewall.
+            Default audio ports: UDP 49160–49180; web: TCP 8787.
+          </p>
+          <details>
+            <summary>Advanced connection options</summary>
+            <label>HTTPS <select id="tls">
+                <option value="no">No — trusted LAN/VPN only</option>
+                <option value="proxy">My external HTTPS proxy</option>
+                <option value="builtin">My certificate and key files</option>
+              </select></label>
+            <label>Certificate PEM path <input id="cert"></label><label>Private key PEM path <input
+                id="key"
+              ></label>
+            <label id="pulse_label">Pulse audio source <input id="pulse_source"></label>
+          </details>
+          <p>
+            A strong password will be generated for the phone browser. Existing configuration is
+            never overwritten.
+          </p>
+          <button id="save" disabled>Save settings</button>
+        </form>
+      </section>
+      <section id="complete" hidden>
+        <h2>Ready to connect</h2>
+        <p>
+          Save this password in your password manager. Use any username when the phone browser asks
+          you to sign in.
+        </p><label>Browser password <input id="token" readonly type="password"></label><button
+          id="reveal"
+          type="button"
+        >
+          Show password
+        </button>
+        <button id="copy" type="button">Copy password</button>
+        <p id="next"></p>
+        <button id="finish" type="button">Finish setup</button>
+        <p><a id="companion" target="_blank" rel="noopener noreferrer">Open aFISHk</a></p>
+      </section>
+      <p id="message" role="status"></p>
+    </main>
+    <script src="app.js"></script>
+  </body>
+</html>

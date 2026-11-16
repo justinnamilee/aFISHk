@@ -51,3 +51,12 @@ export BINDIR CONFIGDIR SYSTEMD_USER_DIR APPLICATIONSDIR BINARY
 .PHONY: install
 install:
 	./scripts/linux/install.sh
+
+.PHONY: windows release
+windows:
+	@test "$$(uname -s)" = Linux || { echo "Build Windows binaries on Linux."; exit 1; }
+	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 $(GO) build -trimpath -ldflags="-H windowsgui" -o bin/afishk.exe ./cmd/afishk
+release:
+	./scripts/package.sh $(VERSION)
+	./scripts/package-windows.sh $(VERSION)
+	cd dist && sha256sum afishk_$(VERSION)_linux_amd64.tar.gz afishk_$(VERSION)_linux_arm64.tar.gz afishk_$(VERSION)_windows_amd64_setup.exe afishk_$(VERSION)_windows_media_sources.tar.gz > SHA256SUMS

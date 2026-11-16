@@ -1,0 +1,75 @@
+:root {
+  color-scheme: dark;
+  font: 16px/1.5 system-ui, sans-serif;
+  background: #111d24;
+  color: #edf5f5;
+}
+body {
+  margin: 0;
+  padding: 24px;
+}
+main {
+  max-width: 660px;
+  margin: auto;
+}
+h1 {
+  font-size: 42px;
+  margin-bottom: 0;
+  color: #85d7cf;
+}
+.lead {
+  margin-top: 0;
+  font-size: 22px;
+}
+h2 {
+  font-size: 21px;
+}
+section {
+  border-top: 1px solid #41515a;
+  margin-top: 24px;
+  padding-top: 10px;
+}
+label {
+  display: block;
+  margin: 16px 0;
+}
+input, select {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  padding: 11px;
+  border: 1px solid #667780;
+  border-radius: 6px;
+  background: #1c2b34;
+  color: inherit;
+  font: inherit;
+}
+button {
+  padding: 12px 20px;
+  border: 0;
+  border-radius: 6px;
+  background: #85d7cf;
+  color: #102028;
+  font: inherit;
+  cursor: pointer;
+}
+button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+a {
+  color: #85d7cf;
+}
+summary {
+  cursor: pointer;
+}
+#message {
+  color: #ffda9b;
+  white-space: pre-wrap;
+}
+#target {
+  overflow-wrap: anywhere;
+}
+[hidden] {
+  display: none !important;
+}

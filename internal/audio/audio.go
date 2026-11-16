@@ -23,15 +23,26 @@ type Manager struct {
 	closed    bool
 }
 type session struct {
-	pc     *webrtc.PeerConnection
-	cancel context.CancelFunc
-	conn   *net.UDPConn
-	timer  *time.Timer
-	once   sync.Once
+	pc           *webrtc.PeerConnection
+	cancel       context.CancelFunc
+	conn         *net.UDPConn
+	timer        *time.Timer
+	producerDone chan struct{}
+	closing      bool // guarded by Manager.mu
+	once         sync.Once
 }
 
 func New(c config.Config, capture Capture) *Manager { return &Manager{config: c, capture: capture} }
-func (s *session) close()                           { s.once.Do(func() { s.cancel(); _ = s.conn.Close(); _ = s.pc.Close() }) }
+func (s *session) close() {
+	s.once.Do(func() {
+		s.cancel()
+		_ = s.conn.Close()
+		_ = s.pc.Close()
+		if s.producerDone != nil {
+			<-s.producerDone
+		}
+	})
+}
 
 func (m *Manager) Start(ctx context.Context, offer webrtc.SessionDescription) (webrtc.SessionDescription, error) {
 	if offer.Type != webrtc.SDPTypeOffer {
@@ -126,7 +137,8 @@ func (m *Manager) Start(ctx context.Context, offer webrtc.SessionDescription) (w
 	}
 	m.session = s
 	s.timer = time.AfterFunc(20*time.Second, func() { m.remove(s) })
-	go func() { _ = process.Wait(); m.remove(s) }()
+	s.producerDone = make(chan struct{})
+	go func() { _ = process.Wait(); close(s.producerDone); m.remove(s) }()
 	go func() {
 		buf := make([]byte, 2048)
 		for {
@@ -145,19 +157,22 @@ func (m *Manager) Start(ctx context.Context, offer webrtc.SessionDescription) (w
 }
 func (m *Manager) remove(s *session) {
 	m.mu.Lock()
-	if m.session == s {
-		m.session = nil
-	}
+	s.closing = true
 	if s.timer != nil {
 		s.timer.Stop()
 	}
 	m.mu.Unlock()
 	s.close()
+	m.mu.Lock()
+	if m.session == s {
+		m.session = nil
+	}
+	m.mu.Unlock()
 }
 func (m *Manager) KeepAlive() bool {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	if m.session == nil {
+	if m.session == nil || m.session.closing {
 		return false
 	}
 	m.session.timer.Reset(20 * time.Second)
@@ -166,13 +181,9 @@ func (m *Manager) KeepAlive() bool {
 func (m *Manager) Stop() {
 	m.mu.Lock()
 	s := m.session
-	m.session = nil
-	if s != nil && s.timer != nil {
-		s.timer.Stop()
-	}
 	m.mu.Unlock()
 	if s != nil {
-		s.close()
+		m.remove(s)
 	}
 }
 func (m *Manager) Close() { m.mu.Lock(); m.closed = true; m.mu.Unlock(); m.Stop() }

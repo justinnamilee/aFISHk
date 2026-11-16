@@ -8,6 +8,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -15,6 +16,7 @@ import (
 	"time"
 
 	"afishk/internal/audio"
+	"afishk/internal/browser"
 	"afishk/internal/config"
 	"afishk/internal/desktop"
 	"afishk/internal/platform"
@@ -25,20 +27,31 @@ import (
 var version = "dev"
 
 func main() {
+	prepareArgs()
 	if err := run(); err != nil {
-		log.Print(err)
+		reportError(err)
 		os.Exit(1)
 	}
 }
 func run() error {
+	if handled, err := nativeCommand(); handled {
+		return err
+	}
+	if len(os.Args) > 1 && os.Args[1] == "launch" {
+		return desktopLaunch(os.Args[2:])
+	}
 	if len(os.Args) > 1 && (os.Args[1] == "setup" || os.Args[1] == "firstrun") {
 		args := flag.NewFlagSet("setup", flag.ContinueOnError)
 		path := args.String("config", setup.DefaultPath(), "new configuration file (never overwrites)")
+		web := args.Bool("web", false, "open local browser setup")
 		if err := args.Parse(os.Args[2:]); err != nil {
 			return err
 		}
 		if args.NArg() != 0 {
-			return errors.New("usage: afishk setup [--config PATH]")
+			return errors.New("usage: afishk setup [--web] [--config PATH]")
+		}
+		if *web {
+			return webSetup(context.Background(), *path)
 		}
 		return setup.Run(os.Stdin, os.Stdout, *path)
 	}
@@ -74,6 +87,21 @@ func run() error {
 		fmt.Println("Configuration valid")
 		return nil
 	}
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	return serve(ctx, c, nil)
+}
+
+func webSetup(ctx context.Context, path string) error {
+	b, err := platform.Open(config.Config{})
+	if err != nil {
+		return err
+	}
+	defer b.Close()
+	return setup.RunWeb(ctx, path, b.Windows, browser.Open, os.Stdout)
+}
+
+func serve(ctx context.Context, c config.Config, ready func()) error {
 	if c.AllowUnauthenticatedLAN && c.TokenFile == "" {
 		log.Print("WARNING: authentication disabled; restrict listener/firewall to trusted VPN clients")
 	}
@@ -82,7 +110,7 @@ func run() error {
 		return err
 	}
 	defer k.Close()
-	control := &desktop.Controller{Windows: k.Windows, Capture: k.Capture, Input: k.Input, Class: c.GameClass, Title: c.GameTitle, CacheDir: c.CacheDir}
+	control := &desktop.Controller{Windows: k.Windows, Capture: k.Capture, Input: k.Input, Class: c.GameClass, Title: c.GameTitle, CacheDir: c.CacheDir, Executable: c.GameExecutable}
 	a := audio.New(c, k.Audio)
 	defer a.Close()
 	app, err := server.New(c, control, a)
@@ -90,25 +118,39 @@ func run() error {
 		return err
 	}
 	srv := &http.Server{Addr: c.Listen, Handler: app.Handler(), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 20 * time.Second, IdleTimeout: 45 * time.Second, MaxHeaderBytes: 16 << 10}
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer stop()
+
+	shutdownDone := make(chan struct{})
 	done := make(chan struct{})
 	go func() {
+		defer close(shutdownDone)
 		select {
 		case <-ctx.Done():
-			shutdown, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			shutdown, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()
-			_ = srv.Shutdown(shutdown)
+			if err := srv.Shutdown(shutdown); err != nil {
+				_ = srv.Close()
+			}
 		case <-done:
 		}
 	}()
+	ln, err := net.Listen("tcp", c.Listen)
+	if err != nil {
+		close(done)
+		<-shutdownDone
+		return err
+	}
+	defer func() { _ = ln.Close() }()
+	if ready != nil {
+		ready()
+	}
 	log.Printf("aFISHk %s listening on %s", version, c.Listen)
 	if c.TLSCert != "" {
-		err = srv.ListenAndServeTLS(c.TLSCert, c.TLSKey)
+		err = srv.ServeTLS(ln, c.TLSCert, c.TLSKey)
 	} else {
-		err = srv.ListenAndServe()
+		err = srv.Serve(ln)
 	}
 	close(done)
+	<-shutdownDone
 	if errors.Is(err, http.ErrServerClosed) {
 		return nil
 	}

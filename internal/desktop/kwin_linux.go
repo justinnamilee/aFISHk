@@ -53,7 +53,7 @@ func (k *KWin) Snapshot(sender dbus.Sender, nonce, id, class, title string) *dbu
 		return dbus.MakeFailedError(errors.New("unexpected KWin reply"))
 	}
 	select {
-	case p.result <- Window{id, class, title}:
+	case p.result <- Window{ID: id, Class: class, Title: title}:
 	default:
 	}
 	return nil

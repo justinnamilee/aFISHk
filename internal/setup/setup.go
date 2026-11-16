@@ -3,10 +3,7 @@ package setup
 
 import (
 	"bufio"
-	"crypto/rand"
 	"crypto/tls"
-	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net"
@@ -136,64 +133,10 @@ func Run(in io.Reader, out io.Writer, path string) error {
 	if err = configurePlatform(&c, ask); err != nil {
 		return err
 	}
+	if _, err = Save(c, path); err != nil {
+		return err
+	}
 	c.TokenFile = filepath.Join(filepath.Dir(path), "token")
-	if err = c.Validate(); err != nil {
-		return err
-	}
-	if err = os.MkdirAll(filepath.Dir(path), 0700); err != nil {
-		return err
-	}
-	// Always generate a token; never offer unauthenticated network access.
-	token := make([]byte, 32)
-	if _, err = rand.Read(token); err != nil {
-		return err
-	}
-	tokenCreated := false
-	if info, statErr := os.Lstat(c.TokenFile); statErr == nil {
-		if !info.Mode().IsRegular() || info.Mode().Perm()&0077 != 0 {
-			return fmt.Errorf("existing token must be a private regular file: %s", c.TokenFile)
-		}
-		data, readErr := os.ReadFile(c.TokenFile)
-		if readErr != nil {
-			return readErr
-		}
-		if len(strings.TrimSpace(string(data))) < 32 {
-			return fmt.Errorf("existing token is too short: %s", c.TokenFile)
-		}
-	} else if os.IsNotExist(statErr) {
-		if err = writePrivate(c.TokenFile, []byte(hex.EncodeToString(token)+"\n")); err != nil {
-			return err
-		}
-		tokenCreated = true
-	} else {
-		return statErr
-	}
-	data, err := json.MarshalIndent(c, "", "  ")
-	if err == nil {
-		err = writePrivate(path, append(data, '\n'))
-	}
-	if err != nil {
-		if tokenCreated {
-			_ = os.Remove(c.TokenFile)
-		}
-		return err
-	}
-	_, err = fmt.Fprintf(out, "Saved %s\nToken: %s (use as the browser Basic auth password; any username).\nOpen %s. Allow TCP %s and UDP %d–%d from trusted clients.\nValidate: afishk --config %q --check\nThen follow desktop acceptance checks and the platform startup instructions in README\n", path, c.TokenFile, c.PublicOrigin, port, c.UDPMin, c.UDPMax, path)
-	return err
-}
-
-func writePrivate(path string, data []byte) error {
-	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
-	if err != nil {
-		return err
-	}
-	_, err = f.Write(data)
-	closeErr := f.Close()
-	if err == nil {
-		err = closeErr
-	}
-	if err != nil {
-		_ = os.Remove(path)
-	}
+	_, err = fmt.Fprintf(out, "Saved %s\nToken: %s (use as the browser Basic auth password; any username).\nOpen %s. Allow TCP %s and UDP %d–%d from trusted clients.\nValidate: afishk --config %q --check\nThen follow the platform startup instructions in README\n", path, c.TokenFile, c.PublicOrigin, port, c.UDPMin, c.UDPMax, path)
 	return err
 }

@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.."
+[[ $(uname -s) == Linux ]] || {
+  echo 'Build release packages on Linux.' >&2
+  exit 1
+}
 version=${1:?Usage: scripts/package.sh v1.0.0}
 [[ $version =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]] || {
   echo 'Expected semver tag vX.Y.Z (optional prerelease)' >&2
