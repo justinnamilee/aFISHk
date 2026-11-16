@@ -18,7 +18,6 @@ import (
 	"strings"
 	"time"
 
-	"afishk/internal/audio"
 	"afishk/internal/config"
 	"github.com/pion/webrtc/v4"
 )
@@ -30,15 +29,20 @@ type Desktop interface {
 	Fish(context.Context) error
 	Screenshot(context.Context) error
 }
+type Audio interface {
+	Start(context.Context, webrtc.SessionDescription) (webrtc.SessionDescription, error)
+	Stop()
+	KeepAlive() bool
+}
 type Server struct {
 	Config  config.Config
 	Desktop Desktop
-	Audio   *audio.Manager
+	Audio   Audio
 	token   string
 	csrf    string
 }
 
-func New(c config.Config, d Desktop, a *audio.Manager) (*Server, error) {
+func New(c config.Config, d Desktop, a Audio) (*Server, error) {
 	s := &Server{Config: c, Desktop: d, Audio: a}
 	if c.TokenFile != "" {
 		b, err := os.ReadFile(c.TokenFile)
@@ -63,7 +67,7 @@ func (s *Server) Handler() http.Handler {
 	mux.Handle("GET /", http.FileServer(http.FS(static)))
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, _ *http.Request) { writeJSON(w, map[string]string{"status": "ok"}) })
 	mux.HandleFunc("GET /api/status", func(w http.ResponseWriter, _ *http.Request) {
-		writeJSON(w, map[string]any{"connected": true, "csrf": s.csrf, "audio": "PipeWire monitor → FFmpeg → WebRTC; start to verify availability"})
+		writeJSON(w, map[string]any{"connected": true, "csrf": s.csrf, "audio": "Desktop audio → WebRTC; start to verify availability"})
 	})
 	mux.HandleFunc("POST /api/fish", func(w http.ResponseWriter, r *http.Request) {
 		if err := s.Desktop.Fish(r.Context()); err != nil {

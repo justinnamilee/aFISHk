@@ -3,30 +3,28 @@ package desktop
 import (
 	"context"
 	"errors"
-	"fmt"
 	"image"
 	"image/png"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"sync"
 	"time"
 )
 
-type Backend interface {
-	Active(context.Context) (Window, error)
-	Capture(context.Context, string) (image.Image, error)
-}
 type Controller struct {
-	Backend                         Backend
-	Class, Title, Ydotool, CacheDir string
-	mu                              sync.Mutex
-	lastInput                       time.Time
-	Run                             func(context.Context, string, ...string) error
+	Windows                WindowSource
+	Capture                Capturer
+	Input                  Input
+	Class, Title, CacheDir string
+	mu                     sync.Mutex
+	lastInput              time.Time
 }
 
 func (c *Controller) Target(ctx context.Context) (Window, error) {
-	w, err := c.Backend.Active(ctx)
+	if c.Windows == nil {
+		return Window{}, errors.New("window backend unavailable")
+	}
+	w, err := c.Windows.Active(ctx)
 	if err != nil {
 		return w, err
 	}
@@ -34,9 +32,6 @@ func (c *Controller) Target(ctx context.Context) (Window, error) {
 		return Window{}, errors.New("WoW is not focused")
 	}
 	return w, nil
-}
-func run(ctx context.Context, name string, args ...string) error {
-	return exec.CommandContext(ctx, name, args...).Run()
 }
 
 func (c *Controller) Fish(ctx context.Context) error {
@@ -48,25 +43,17 @@ func (c *Controller) Fish(ctx context.Context) error {
 	if time.Since(c.lastInput) < 350*time.Millisecond {
 		return errors.New("tap too fast")
 	}
-	if _, err := c.Target(ctx); err != nil {
+	w, err := c.Target(ctx)
+	if err != nil {
 		return err
 	}
-	fn := c.Run
-	if fn == nil {
-		fn = run
+	if c.Input == nil {
+		return errors.New("input backend unavailable")
 	}
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 	c.lastInput = time.Now()
-	// Linux KEY_F = 33. A single invocation sends down and up, no repetition.
-	if err := fn(ctx, c.Ydotool, "key", "--key-delay", "20", "33:1", "33:0"); err != nil {
-		// Best effort key-up if the client died after sending key-down. Never retry down.
-		release, stop := context.WithTimeout(context.Background(), time.Second)
-		defer stop()
-		_ = fn(release, c.Ydotool, "key", "33:0")
-		return fmt.Errorf("ydotool failed (key-up attempted): %w", err)
-	}
-	return nil
+	return c.Input.SendF(ctx, w)
 }
 func (c *Controller) Screenshot(ctx context.Context) error {
 	if !c.mu.TryLock() {
@@ -77,7 +64,10 @@ func (c *Controller) Screenshot(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	img, err := c.Backend.Capture(ctx, w.ID)
+	if c.Capture == nil {
+		return errors.New("capture backend unavailable")
+	}
+	img, err := c.Capture.Capture(ctx, w.ID)
 	if err != nil {
 		return err
 	}

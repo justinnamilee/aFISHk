@@ -41,3 +41,5 @@ jobs:
           version: v2.11.3
       - name: Build
         run: make build
+      - name: Check portable build boundary (not Windows runtime support)
+        run: GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -o /tmp/afishk-portability.exe ./cmd/afishk

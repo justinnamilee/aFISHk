@@ -287,8 +287,9 @@ the desktop/phone checks above.
 | --- | --- |
 | `cmd/afishk` | CLI and service lifecycle |
 | `internal/config`, `internal/setup` | Config validation and guided setup |
-| `internal/desktop` | KWin identity, guarded input and targeted screenshots |
-| `internal/audio` | FFmpeg and a single WebRTC audio session |
+| `internal/desktop` | Backend interfaces, guarded actions, Linux KWin and ydotool |
+| `internal/audio` | Capture interface, Linux Pulse/FFmpeg and a single WebRTC session |
+| `internal/platform` | OS-specific backend selection and lifetime |
 | `internal/server` | HTTP protections and embedded mobile UI |
 | `scripts`, `packaging` | System preparation, installation and release archives |
 
@@ -307,3 +308,29 @@ workflow refuses to modify published releases.
   - [PipeWire](https://pipewire.org/), and
   - [Pion WebRTC](https://github.com/pion/webrtc).
   - These projects retain their own licenses.
+
+### Adding a desktop backend
+
+Backends are compiled-in Go implementations selected in `internal/platform`,
+not runtime-loaded plugins. Linux KDE Plasma Wayland remains the only supported
+platform; existing JSON configuration keys and audio settings are unchanged.
+
+| Interface | Contract |
+| --- | --- |
+| `desktop.WindowSource` | Return the focused native window only after verifying the session is unlocked; fail if either state is unknown. |
+| `desktop.Capturer` | Capture the supplied opaque window ID only; never fall back to an active window or desktop. |
+| `desktop.Input` | Send one F press/release, with no activation or key-down retries; permit best-effort key-up on failure. |
+| `audio.Capture` / `audio.Process` | Start an Opus RTP producer; context cancellation must terminate it and unblock its single `Wait` call. |
+
+The shared desktop controller owns exact class/title matching, action exclusion,
+input throttling and private screenshot persistence. The shared audio manager
+owns WebRTC, UDP port bounds, the single-peer limit and lease cleanup. The HTTP
+server consumes interfaces for both desktop actions and audio sessions.
+
+Add implementations behind OS-specific files/build constraints, wire them in
+`internal/platform`, and add platform defaults/validation in `internal/config`
+and prompts in `internal/setup`. KWin, ydotool and Pulse/FFmpeg implementations
+are Linux-only. Non-Linux builds explicitly reject desktop startup and setup;
+a successful Windows cross-build is an architecture check, **not Windows support**.
+Preserve the contracts above and add backend-specific acceptance checks before
+supporting another platform.

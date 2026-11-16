@@ -1,13 +1,11 @@
-// Package audio bridges FFmpeg's desktop-monitor Opus RTP into one WebRTC peer.
+// Package audio manages captured Opus RTP into one WebRTC peer.
 package audio
 
 import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"net"
-	"os/exec"
 	"sync"
 	"time"
 
@@ -16,6 +14,7 @@ import (
 )
 
 type Manager struct {
+	capture Capture
 	// configure permits isolated transports in integration tests; production uses host networking.
 	configure func(*webrtc.SettingEngine)
 	mu        sync.Mutex
@@ -31,8 +30,8 @@ type session struct {
 	once   sync.Once
 }
 
-func New(c config.Config) *Manager { return &Manager{config: c} }
-func (s *session) close()          { s.once.Do(func() { s.cancel(); _ = s.conn.Close(); _ = s.pc.Close() }) }
+func New(c config.Config, capture Capture) *Manager { return &Manager{config: c, capture: capture} }
+func (s *session) close()                           { s.once.Do(func() { s.cancel(); _ = s.conn.Close(); _ = s.pc.Close() }) }
 
 func (m *Manager) Start(ctx context.Context, offer webrtc.SessionDescription) (webrtc.SessionDescription, error) {
 	if offer.Type != webrtc.SDPTypeOffer {
@@ -45,6 +44,9 @@ func (m *Manager) Start(ctx context.Context, offer webrtc.SessionDescription) (w
 	}
 	if m.session != nil {
 		return webrtc.SessionDescription{}, errors.New("audio already in use; stop it or wait 20 seconds for lease expiry")
+	}
+	if m.capture == nil {
+		return webrtc.SessionDescription{}, errors.New("audio capture backend unavailable")
 	}
 	var se webrtc.SettingEngine
 	if err := se.SetEphemeralUDPPortRange(m.config.UDPMin, m.config.UDPMax); err != nil {
@@ -118,21 +120,13 @@ func (m *Manager) Start(ctx context.Context, offer webrtc.SessionDescription) (w
 		return webrtc.SessionDescription{}, ctx.Err()
 	}
 	target := fmt.Sprintf("rtp://127.0.0.1:%d?pkt_size=1200", conn.LocalAddr().(*net.UDPAddr).Port)
-	// Allow Opus to use in-band loss recovery when its selected mode supports it.
-	// Restricted lowdelay is CELT-only and cannot provide SILK in-band FEC.
-	// Flush each 20 ms packet rather than adding muxer buffering before WebRTC.
-	cmd := exec.CommandContext(mediaCtx, m.config.FFmpeg, "-nostdin", "-hide_banner", "-loglevel", "error",
-		"-f", "pulse", "-i", m.config.PulseSource, "-vn", "-c:a", "libopus", "-application", "audio",
-		"-fec:a", "1", "-packet_loss", "10", "-frame_duration", "20", "-ar", "48000", "-ac", "2", "-b:a", "96000",
-		"-payload_type", "111", "-flush_packets", "1", "-f", "rtp", target)
-	cmd.Stdout = io.Discard
-	cmd.Stderr = io.Discard
-	if err = cmd.Start(); err != nil {
-		return webrtc.SessionDescription{}, fmt.Errorf("start FFmpeg: %w", err)
+	process, err := m.capture.Start(mediaCtx, target)
+	if err != nil {
+		return webrtc.SessionDescription{}, fmt.Errorf("start audio capture: %w", err)
 	}
 	m.session = s
 	s.timer = time.AfterFunc(20*time.Second, func() { m.remove(s) })
-	go func() { _ = cmd.Wait(); m.remove(s) }()
+	go func() { _ = process.Wait(); m.remove(s) }()
 	go func() {
 		buf := make([]byte, 2048)
 		for {

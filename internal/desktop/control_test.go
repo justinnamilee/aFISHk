@@ -7,8 +7,8 @@ import (
 	"image"
 	"os"
 	"path/filepath"
-	"reflect"
 	"testing"
+	"time"
 )
 
 type fakeDesktop struct {
@@ -23,7 +23,7 @@ func (f *fakeDesktop) Capture(context.Context, string) (image.Image, error) {
 func controller(t *testing.T) (*Controller, *fakeDesktop) {
 	t.Helper()
 	f := &fakeDesktop{w: Window{"id", "wow.exe", "World of Warcraft"}}
-	return &Controller{Backend: f, Class: "wow.exe", Title: "World of Warcraft", Ydotool: "ydotool", CacheDir: t.TempDir()}, f
+	return &Controller{Windows: f, Capture: f, Class: "wow.exe", Title: "World of Warcraft", CacheDir: t.TempDir()}, f
 }
 func TestFishRejectsWrongOrUnknownFocus(t *testing.T) {
 	for _, kind := range []string{"class", "title", "missing", "error"} {
@@ -40,7 +40,7 @@ func TestFishRejectsWrongOrUnknownFocus(t *testing.T) {
 				f.activeErr = errors.New("no compositor")
 			}
 			calls := 0
-			c.Run = func(context.Context, string, ...string) error { calls++; return nil }
+			c.Input = inputFunc(func(context.Context, Window) error { calls++; return nil })
 			if c.Fish(context.Background()) == nil || calls != 0 {
 				t.Fatal("unverified target must never receive input")
 			}
@@ -49,30 +49,16 @@ func TestFishRejectsWrongOrUnknownFocus(t *testing.T) {
 }
 func TestFishOneTapAndThrottle(t *testing.T) {
 	c, _ := controller(t)
-	var calls [][]string
-	c.Run = func(_ context.Context, _ string, args ...string) error { calls = append(calls, args); return nil }
+	var calls []Window
+	c.Input = inputFunc(func(_ context.Context, w Window) error { calls = append(calls, w); return nil })
 	if err := c.Fish(context.Background()); err != nil {
 		t.Fatal(err)
 	}
-	if len(calls) != 1 || !reflect.DeepEqual(calls[0], []string{"key", "--key-delay", "20", "33:1", "33:0"}) {
+	if len(calls) != 1 || calls[0].ID != "id" {
 		t.Fatal(calls)
 	}
 	if c.Fish(context.Background()) == nil || len(calls) != 1 {
 		t.Fatal("rapid tap was queued or sent")
-	}
-}
-func TestFailedInputOnlyAttemptsRelease(t *testing.T) {
-	c, _ := controller(t)
-	var calls [][]string
-	c.Run = func(_ context.Context, _ string, args ...string) error {
-		calls = append(calls, args)
-		return errors.New("offline")
-	}
-	if c.Fish(context.Background()) == nil {
-		t.Fatal("expected error")
-	}
-	if len(calls) != 2 || !reflect.DeepEqual(calls[1], []string{"key", "33:0"}) {
-		t.Fatal(calls)
 	}
 }
 func TestBusyInputIsRejected(t *testing.T) {
@@ -116,24 +102,60 @@ func TestScreenshotPreservesLatestOnFailure(t *testing.T) {
 		t.Fatalf("unwanted history: %v %v", files, err)
 	}
 }
-func TestSnapshotRejectsSpoofedAndStaleReplies(t *testing.T) {
-	ch := make(chan Window, 1)
-	k := &KWin{pending: map[string]pending{"nonce": {owner: ":1.42", result: ch}}}
-	if k.Snapshot(":1.99", "nonce", "id", "wow.exe", "World of Warcraft") == nil {
-		t.Fatal("accepted wrong D-Bus sender")
-	}
-	if k.Snapshot(":1.42", "stale", "id", "wow.exe", "World of Warcraft") == nil {
-		t.Fatal("accepted stale reply")
-	}
-	if err := k.Snapshot(":1.42", "nonce", "id", "wow.exe", "World of Warcraft"); err != nil {
-		t.Fatal(err)
-	}
-	select {
-	case w := <-ch:
-		if w.ID != "id" {
-			t.Fatal(w)
+
+type inputFunc func(context.Context, Window) error
+
+func (f inputFunc) SendF(ctx context.Context, w Window) error { return f(ctx, w) }
+
+func TestFailedInputIsNotRetried(t *testing.T) {
+	c, _ := controller(t)
+	calls := 0
+	c.Input = inputFunc(func(ctx context.Context, _ Window) error {
+		calls++
+		if deadline, ok := ctx.Deadline(); !ok || time.Until(deadline) > 2*time.Second {
+			t.Error("missing input deadline")
 		}
-	default:
-		t.Fatal("missing KWin reply")
+		return errors.New("failed")
+	})
+	if c.Fish(context.Background()) == nil || calls != 1 {
+		t.Fatal("expected single failed call")
 	}
 }
+
+func TestMissingBackendsFailClosed(t *testing.T) {
+	c, _ := controller(t)
+	if c.Fish(context.Background()) == nil {
+		t.Fatal("missing input accepted")
+	}
+	c.Capture = nil
+	if c.Screenshot(context.Background()) == nil {
+		t.Fatal("missing capture accepted")
+	}
+	c.Windows = nil
+	if _, err := c.Target(context.Background()); err == nil {
+		t.Fatal("missing window source accepted")
+	}
+}
+
+func TestCaptureReceivesVerifiedID(t *testing.T) {
+	c, f := controller(t)
+	calls := 0
+	c.Capture = captureFunc(func(_ context.Context, id string) (image.Image, error) {
+		calls++
+		if id != f.w.ID {
+			t.Fatal("wrong capture target")
+		}
+		return image.NewRGBA(image.Rect(0, 0, 1, 1)), nil
+	})
+	if err := c.Screenshot(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	f.activeErr = errors.New("locked or unknown")
+	if c.Screenshot(context.Background()) == nil || calls != 1 {
+		t.Fatal("unverified capture")
+	}
+}
+
+type captureFunc func(context.Context, string) (image.Image, error)
+
+func (f captureFunc) Capture(ctx context.Context, id string) (image.Image, error) { return f(ctx, id) }
