@@ -34,7 +34,7 @@ tools: format-tools
 	$(GO) install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_VERSION)
 format-tools:
 	$(GO) install mvdan.cc/sh/v3/cmd/shfmt@$(SHFMT_VERSION)
-	./scripts/install-dprint.sh
+	./scripts/dprint.sh
 	$(DPRINT) install
 package:
 	./scripts/package.sh $(VERSION)

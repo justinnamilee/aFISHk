@@ -22,7 +22,7 @@
 ## Development and review
 
 - Run `make tools` after installing Go, ShellCheck, curl and unzip; include the Go binary installation directory in PATH. dprint installs locally in `.tools/`.
-- Use `make fmt`: gofmt for Go, shfmt for Bash, dprint for HTML/CSS/JS. Pin the dprint binary version/checksums in `scripts/install-dprint.sh` and plugin versions/checksums in `dprint.json`.
+- Use `make fmt`: gofmt for Go, shfmt for Bash, dprint for HTML/CSS/JS. Pin the dprint binary version/checksums in `scripts/dprint.sh` and plugin versions/checksums in `dprint.json`.
 - Run `make check`, `make lint` and `make build` before delivery. FFmpeg must be available so the audio integration test runs. Record validation results and any skipped or blocked checks accurately in the PR, never in README.md.
 - For packaging changes, run `make package VERSION=v1.0.0-rc.1` and inspect both archives. Keep build/install usable without Node or formatter dependencies. Release archives must contain only the root binary, sample config, README, LICENSE, `scripts/linux` runtime helpers and `inc/linux` integration files; no Makefile, source or developer tools. Installer tests use temporary destinations and mocked system commands; never invoke real desktop setup in CI.
 - Automated tests cannot validate Nobara/KDE hardware, FishFry, Android playback or VPN latency. Put the required manual checks and their completion status in the PR: focused one-tap/one-F input, rejection on wrong focus or locked/unknown session, targeted screenshots and previous-image preservation, desktop/Android audio, and VPN/reconnection behavior. Do not add or refer contributors to a README validation checklist.
