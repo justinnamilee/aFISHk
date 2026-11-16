@@ -18,12 +18,6 @@ import (
 const bridgeInterface = "org.afishk.Companion"
 const bridgePath dbus.ObjectPath = "/org/afishk/Companion"
 
-type Window struct {
-	ID    string `json:"id"`
-	Class string `json:"class"`
-	Title string `json:"title"`
-}
-
 type pending struct {
 	owner  string
 	result chan Window
@@ -35,7 +29,7 @@ type KWin struct {
 	pending map[string]pending
 }
 
-func Open() (*KWin, error) {
+func OpenKWin() (*KWin, error) {
 	c, err := dbus.ConnectSessionBus()
 	if err != nil {
 		return nil, err

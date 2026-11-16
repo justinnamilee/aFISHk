@@ -24,7 +24,7 @@ func TestProtectAllRoutesAndCSRF(t *testing.T) {
 	}
 	c := config.Config{Listen: "127.0.0.1:8787", TokenFile: p, CacheDir: dir}
 	d := &fakeDesktop{}
-	a := audio.New(c)
+	a := audio.New(c, nil)
 	defer a.Close()
 	s, err := New(c, d, a)
 	if err != nil {
@@ -78,7 +78,7 @@ func TestScreenshotNoCacheAndNoTraversal(t *testing.T) {
 		t.Fatal(err)
 	}
 	c := config.Config{Listen: "127.0.0.1:8787", CacheDir: dir}
-	a := audio.New(c)
+	a := audio.New(c, nil)
 	defer a.Close()
 	s, err := New(c, &fakeDesktop{}, a)
 	if err != nil {

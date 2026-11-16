@@ -30,13 +30,23 @@ type Config struct {
 	UDPMax                  uint16 `json:"udp_max"`
 }
 
-func Load(path string) (Config, error) {
+// Defaults returns portable defaults plus the selected platform settings.
+func Defaults() (Config, error) {
 	cache, err := os.UserCacheDir()
 	if err != nil {
 		return Config{}, err
 	}
 	c := Config{Listen: "127.0.0.1:8787", CacheDir: filepath.Join(cache, "afishk"),
-		GameTitle: "World of Warcraft", Ydotool: "ydotool", FFmpeg: "ffmpeg", PulseSource: "@DEFAULT_MONITOR@", UDPMin: 49160, UDPMax: 49180}
+		GameTitle: "World of Warcraft", UDPMin: 49160, UDPMax: 49180}
+	err = platformDefaults(&c)
+	return c, err
+}
+
+func Load(path string) (Config, error) {
+	c, err := Defaults()
+	if err != nil {
+		return c, err
+	}
 	f, err := os.Open(path)
 	if err != nil {
 		return c, err
@@ -86,8 +96,5 @@ func (c Config) Validate() error {
 	if c.ICEAddress != "" && net.ParseIP(c.ICEAddress).To4() == nil {
 		return errors.New("ice_address must be a literal IPv4 VPN address")
 	}
-	if c.FFmpeg == "" || c.Ydotool == "" || c.PulseSource == "" {
-		return errors.New("ffmpeg, ydotool and pulse_source must be nonempty")
-	}
-	return nil
+	return validatePlatform(c)
 }

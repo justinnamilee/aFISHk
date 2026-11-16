@@ -52,11 +52,10 @@ func Run(in io.Reader, out io.Writer, path string) error {
 		}
 		return line, nil
 	}
-	cache, err := os.UserCacheDir()
+	c, err := config.Defaults()
 	if err != nil {
 		return err
 	}
-	c := config.Config{CacheDir: filepath.Join(cache, "afishk"), GameTitle: "World of Warcraft", Ydotool: "/usr/bin/ydotool", FFmpeg: "/usr/bin/ffmpeg", PulseSource: "@DEFAULT_MONITOR@", UDPMin: 49160, UDPMax: 49180}
 	if _, err = fmt.Fprintln(out, "aFISHk setup — Enter accepts defaults; Ctrl-D cancels.\nRun afishk inspect first for the exact WoW class and title.\nUse your trusted LAN/VPN address; setup does not change DNS or firewall rules."); err != nil {
 		return err
 	}
@@ -134,7 +133,7 @@ func Run(in io.Reader, out io.Writer, path string) error {
 	if c.GameTitle, err = ask("Exact game title from afishk inspect", c.GameTitle); err != nil {
 		return err
 	}
-	if c.PulseSource, err = ask("Pulse audio source", c.PulseSource); err != nil {
+	if err = configurePlatform(&c, ask); err != nil {
 		return err
 	}
 	c.TokenFile = filepath.Join(filepath.Dir(path), "token")
@@ -179,7 +178,7 @@ func Run(in io.Reader, out io.Writer, path string) error {
 		}
 		return err
 	}
-	_, err = fmt.Fprintf(out, "Saved %s\nToken: %s (use as the browser Basic auth password; any username).\nOpen %s. Allow TCP %s and UDP %d–%d from trusted clients.\nValidate: afishk --config %q --check\nThen follow desktop acceptance checks and start: systemctl --user start afishk\n", path, c.TokenFile, c.PublicOrigin, port, c.UDPMin, c.UDPMax, path)
+	_, err = fmt.Fprintf(out, "Saved %s\nToken: %s (use as the browser Basic auth password; any username).\nOpen %s. Allow TCP %s and UDP %d–%d from trusted clients.\nValidate: afishk --config %q --check\nThen follow desktop acceptance checks and the platform startup instructions in README\n", path, c.TokenFile, c.PublicOrigin, port, c.UDPMin, c.UDPMax, path)
 	return err
 }
 

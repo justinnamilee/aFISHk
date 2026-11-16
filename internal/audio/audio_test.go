@@ -1,3 +1,5 @@
+//go:build linux
+
 package audio
 
 import (
@@ -40,7 +42,7 @@ exec %q -re "${args[@]}"
 	if err = os.WriteFile(wrapper, []byte(script), 0700); err != nil {
 		t.Fatal(err)
 	}
-	m := New(config.Config{FFmpeg: wrapper, PulseSource: "unused", UDPMin: 49200, UDPMax: 49250})
+	m := New(config.Config{UDPMin: 49200, UDPMax: 49250}, PulseCapture{FFmpeg: wrapper, Source: "unused"})
 	defer m.Close()
 	m.configure = isolatedNetwork
 	var settings webrtc.SettingEngine
@@ -120,7 +122,7 @@ exec %q -re "${args[@]}"
 	}
 }
 func TestInvalidOfferAndShutdown(t *testing.T) {
-	m := New(config.Config{})
+	m := New(config.Config{}, nil)
 	defer m.Close()
 	if _, err := m.Start(context.Background(), webrtc.SessionDescription{Type: webrtc.SDPTypeAnswer}); err == nil {
 		t.Fatal("accepted answer")
@@ -144,4 +146,105 @@ func isolatedNetwork(se *webrtc.SettingEngine) {
 	se.SetNet(loopbackNet{Net: &stdnet.Net{}})
 	se.SetIncludeLoopbackCandidate(true)
 	se.SetNetworkTypes([]webrtc.NetworkType{webrtc.NetworkTypeUDP4})
+}
+
+// This backend has no FFmpeg dependency: verify Manager owns cancellation,
+// failed-start cleanup, lease expiry and producer-exit cleanup for any backend.
+type fakeCapture struct {
+	fail   bool
+	ctx    context.Context
+	exit   chan struct{}
+	waited chan struct{}
+}
+
+func (f *fakeCapture) Start(ctx context.Context, _ string) (Process, error) {
+	f.ctx = ctx
+	if f.fail {
+		return nil, fmt.Errorf("capture unavailable")
+	}
+	return f, nil
+}
+func (f *fakeCapture) Wait() error {
+	defer close(f.waited)
+	select {
+	case <-f.ctx.Done():
+	case <-f.exit:
+	}
+	return nil
+}
+
+func testOffer(t *testing.T) webrtc.SessionDescription {
+	t.Helper()
+	var se webrtc.SettingEngine
+	isolatedNetwork(&se)
+	pc, err := webrtc.NewAPI(webrtc.WithSettingEngine(se)).NewPeerConnection(webrtc.Configuration{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = pc.Close() })
+	if _, err = pc.AddTransceiverFromKind(webrtc.RTPCodecTypeAudio, webrtc.RTPTransceiverInit{Direction: webrtc.RTPTransceiverDirectionRecvonly}); err != nil {
+		t.Fatal(err)
+	}
+	offer, err := pc.CreateOffer(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	done := webrtc.GatheringCompletePromise(pc)
+	if err = pc.SetLocalDescription(offer); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case <-done:
+	case <-time.After(5 * time.Second):
+		t.Fatal("ICE timeout")
+	}
+	return *pc.LocalDescription()
+}
+
+func TestCaptureLifecycle(t *testing.T) {
+	for _, mode := range []string{"start-failure", "stop", "close", "exit", "lease"} {
+		t.Run(mode, func(t *testing.T) {
+			f := &fakeCapture{fail: mode == "start-failure", exit: make(chan struct{}), waited: make(chan struct{})}
+			m := New(config.Config{UDPMin: 49200, UDPMax: 49250}, f)
+			m.configure = isolatedNetwork
+			defer m.Close()
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			_, err := m.Start(ctx, testOffer(t))
+			if mode == "start-failure" {
+				if err == nil || m.KeepAlive() || f.ctx.Err() == nil {
+					t.Fatal("failed capture leaked session/context")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			switch mode {
+			case "stop":
+				m.Stop()
+			case "close":
+				m.Close()
+			case "exit":
+				close(f.exit)
+			case "lease":
+				m.mu.Lock()
+				m.session.timer.Reset(time.Millisecond)
+				m.mu.Unlock()
+			}
+			select {
+			case <-f.ctx.Done():
+			case <-ctx.Done():
+				t.Fatal("producer not cancelled")
+			}
+			select {
+			case <-f.waited:
+			case <-ctx.Done():
+				t.Fatal("producer not reaped")
+			}
+			if m.KeepAlive() {
+				t.Fatal("session lease survived cleanup")
+			}
+		})
+	}
 }

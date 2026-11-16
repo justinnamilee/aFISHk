@@ -1,4 +1,4 @@
-// Command afishk runs the desktop companion under the logged-in Plasma user.
+// Command afishk runs the desktop companion under the logged-in desktop user.
 package main
 
 import (
@@ -17,6 +17,7 @@ import (
 	"afishk/internal/audio"
 	"afishk/internal/config"
 	"afishk/internal/desktop"
+	"afishk/internal/platform"
 	"afishk/internal/server"
 	"afishk/internal/setup"
 )
@@ -46,14 +47,14 @@ func run() error {
 		return nil
 	}
 	if len(os.Args) > 1 && os.Args[1] == "inspect" {
-		k, err := desktop.Open()
+		k, err := platform.Open(config.Config{})
 		if err != nil {
 			return err
 		}
 		defer k.Close()
 		fmt.Fprintln(os.Stderr, "Focus WoW now; querying active window in 5 seconds…")
 		time.Sleep(5 * time.Second)
-		w, err := k.Active(context.Background())
+		w, err := k.Windows.Active(context.Background())
 		if err != nil {
 			return err
 		}
@@ -76,13 +77,13 @@ func run() error {
 	if c.AllowUnauthenticatedLAN && c.TokenFile == "" {
 		log.Print("WARNING: authentication disabled; restrict listener/firewall to trusted VPN clients")
 	}
-	k, err := desktop.Open()
+	k, err := platform.Open(c)
 	if err != nil {
 		return err
 	}
 	defer k.Close()
-	control := &desktop.Controller{Backend: k, Class: c.GameClass, Title: c.GameTitle, Ydotool: c.Ydotool, CacheDir: c.CacheDir}
-	a := audio.New(c)
+	control := &desktop.Controller{Windows: k.Windows, Capture: k.Capture, Input: k.Input, Class: c.GameClass, Title: c.GameTitle, CacheDir: c.CacheDir}
+	a := audio.New(c, k.Audio)
 	defer a.Close()
 	app, err := server.New(c, control, a)
 	if err != nil {
