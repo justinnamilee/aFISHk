@@ -32,52 +32,61 @@ your VPN, DNS, firewall, or sleep/lock settings.
 Run commands on the desktop as your normal logged-in user. Only the runtime
 preparation helper uses sudo; the aFISHk service runs as you.
 
-### 1. Get aFISHk
+### 1. Install from source or a release
 
-**From source:** install Git, Make and Go 1.25 or newer, then clone and build:
+**From source:** install Git, Make and Go 1.25 or newer, then:
 
 ```bash
 sudo dnf install git make golang
 git clone https://github.com/justinnamilee/aFISHk.git
 cd aFISHk
 make build
+./scripts/linux/setup-dnf-plasma-wayland.sh
+make install
 ```
 
-**From a release:** download the Linux archive for your CPU (`amd64` for most
-PCs, `arm64` for ARM) and `SHA256SUMS` from
-[Releases](https://github.com/justinnamilee/aFISHk/releases). In the download
-directory, verify the archive before extracting it:
+**From a release:** download the Linux archive matching your CPU (`amd64` for
+most PCs, `arm64` for ARM) and `SHA256SUMS` from
+[Releases](https://github.com/justinnamilee/aFISHk/releases). Verify, extract and
+run the installer as your desktop user:
 
 ```bash
 sha256sum --ignore-missing --check SHA256SUMS
 tar -xzf afishk_v1.0.0_linux_amd64.tar.gz
 cd afishk_v1.0.0_linux_amd64
+./scripts/linux/install-dnf-plasma-wayland.sh
 ```
 
-Replace the version and architecture with the archive you downloaded. A release
-includes the compiled binary; development tools are not needed to install or run it.
+Replace the version/architecture with your download. Release installation needs
+Bash and standard Linux utilities, **not Make, Go, a compiler or formatters**.
+The archive contains only the binary, sample configuration, Linux install/setup
+and diagnostic scripts, Linux integration templates, a short README and LICENSE.
 
-### 2. Prepare and install
+### 2. What installation prepares
 
-From the source or extracted release directory:
+The DNF + Plasma Wayland setup helper installs runtime dependencies from your
+enabled repositories and creates a dedicated ydotool service with a socket owned
+by your desktop user. Existing FFmpeg is preserved; otherwise it requests
+`ffmpeg-free`. Resolve codec-package conflicts through your distro. It does not
+configure VPN, DNS, firewall rules or FishFry.
 
-```bash
-./scripts/setup-plasma.sh # only needs to be done once
-make install              # should be run when updating
-```
+If you manage ydotool yourself, pass `--existing-ydotool` to the setup helper or
+release installer. Set `YDOTOOL_SOCKET` in a `systemctl --user edit afishk`
+override if needed. The dedicated socket defaults to
+`/run/afishk-input-UID/socket`.
 
-The helper installs runtime packages using your enabled DNF repositories and
-creates a dedicated ydotool system service with a socket owned by your user.
-Existing FFmpeg installations are preserved; otherwise it requests
-`ffmpeg-free`. Resolve any codec-package conflicts through your distro.
+The release installer checks the binary and templates, runs system preparation,
+then calls `scripts/linux/install.sh`. `make install` calls that same shared
+installer without system preparation. It installs `~/.local/bin/afishk`, the
+systemd user service and the KDE desktop entry required for screenshot access.
+It preserves existing configuration and tokens and **never starts or restarts
+aFISHk**. Binary replacement is atomic, including while the old binary is running;
+restart explicitly after validation to use the new version.
 
-If you already manage ydotool, use `./scripts/setup-plasma.sh --existing-ydotool`
-and set `YDOTOOL_SOCKET` in a `systemctl --user edit afishk` override if needed.
-The dedicated socket defaults to `/run/afishk-input-UID/socket`.
-
-`make install` installs `~/.local/bin/afishk`, a systemd user service, and the KDE
-desktop entry required for screenshot authorization. Existing configuration is
-preserved. Installation does not start the service.
+Use `--skip-setup` on the release installer for updates or an already-prepared
+desktop. Repeated installation is supported. The old `scripts/install.sh`,
+`scripts/setup-plasma.sh` and `scripts/doctor.sh` source entry points remain as
+compatibility wrappers; they are not shipped in releases.
 
 ### 3. Configure the connection
 
@@ -139,7 +148,7 @@ the audio stream.
 ### 5. Start and sign in
 
 ```bash
-./scripts/doctor.sh
+./scripts/linux/doctor.sh
 ~/.local/bin/afishk --check
 systemctl --user import-environment WAYLAND_DISPLAY DISPLAY XDG_CURRENT_DESKTOP
 systemctl --user start afishk
@@ -192,15 +201,17 @@ make install
 systemctl --user restart afishk
 ```
 
-For a release update, verify/extract the new archive, run `make install` there,
-and restart. Do not rerun setup.
+For a release update, verify and extract the new archive, then:
 
 ```bash
-systemctl --user stop afishk
-make install
-systemctl --user start afishk
+./scripts/linux/install-dnf-plasma-wayland.sh --skip-setup
+~/.local/bin/afishk --check
+systemctl --user restart afishk
 journalctl --user -u afishk -f
 ```
+
+Do not rerun `afishk setup` for an existing config. Use the same directory
+overrides for updates as on first install.
 
 To disable startup, use `systemctl --user disable --now afishk`. If no longer
 needed, also disable the dedicated input daemon with
@@ -213,7 +224,7 @@ needed, also disable the dedicated input daemon with
 | Page unreachable | Listener address, VPN routing, TCP firewall rule, and `systemctl --user status afishk`. |
 | Rejected hostname/origin | Open exactly `public_origin`; make sure phone DNS resolves it correctly. |
 | Repeated login prompt | Use the token contents as password, not its filename. |
-| Input rejected | WoW focus, exact class/title, unlocked Wayland session, and `./scripts/doctor.sh`. |
+| Input rejected | WoW focus, exact class/title, unlocked Wayland session, and `./scripts/linux/doctor.sh`. |
 | Screenshot denied | Run the installed binary with its matching KDE desktop entry; log out/in if permissions are cached. Never disable KWin permission checks globally. |
 | Audio connects but is silent | Play desktop sound; inspect `pactl list short sources`, select the correct monitor in `pulse_source`, then restart. |
 | Audio never connects | Check `ice_address` and UDP rules; opening TCP alone is insufficient. |
@@ -242,7 +253,8 @@ LAN/VPN; **Basic authentication alone does not encrypt HTTP**.
 
 **Install paths:** `make install` accepts `BINDIR`, `CONFIGDIR`,
 `SYSTEMD_USER_DIR`, `APPLICATIONSDIR` and `BINARY` as environment variables or
-Make arguments. Defaults respect XDG config/data directories. Directory overrides
+Make arguments. Release installers accept the same environment variables;
+`BINARY` defaults to the archive's root binary (or `bin/afishk` in source). Defaults respect XDG config/data directories. Directory overrides
 must be absolute and contain only letters, digits, underscore, dot, slash or
 hyphen. Custom systemd/KDE directories must be discoverable by those services.
 For a custom config directory, pass its full config path to setup and manual runs.
@@ -272,7 +284,7 @@ toolchain is required.
 
 Formatters are **gofmt** for Go, **shfmt** for Bash, and **dprint** for HTML/CSS/JS.
 `make fmt` writes formatting; `make fmt-check` checks without editing.
-`make check` checks formatting, runs `go vet`, race tests, and Bash syntax checks.
+`make check` checks formatting, runs `go vet`, race tests, Bash syntax checks and isolated installer tests.
 `make lint` runs golangci-lint and ShellCheck. dprint parses frontend files during
 formatting checks, but it does not replace browser behavior tests. CI runs the
 same checks. The plain frontend is embedded directly in the Go binary with no
@@ -291,10 +303,15 @@ the desktop/phone checks above.
 | `internal/audio` | Capture interface, Linux Pulse/FFmpeg and a single WebRTC session |
 | `internal/platform` | OS-specific backend selection and lifetime |
 | `internal/server` | HTTP protections and embedded mobile UI |
-| `scripts`, `packaging` | System preparation, installation and release archives |
+| `scripts/linux`, `inc/linux` | Shipped runtime scripts and integration templates |
+| `scripts`, `packaging`, `tests` | Development tooling, release README and installer/archive checks |
 
 `make package VERSION=v1.0.0` builds Linux amd64/arm64 archives and checksums in
-`dist/`. Tag releases trigger CI and create a **draft** release for review; the
+`dist/`. Packaging checks both archives against an exact runtime-only file list,
+verifies checksums, and smoke-tests installation of the host-architecture binary
+using temporary destinations and mocked system commands. CI runs these checks.
+The other architecture is built and inspected but requires its own runtime test.
+Tag releases trigger CI and create a **draft** release for review; the
 workflow refuses to modify published releases.
 
 ## License and credits
