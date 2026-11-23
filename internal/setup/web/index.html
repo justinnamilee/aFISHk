@@ -24,12 +24,16 @@
         <p id="target" role="status">No game selected</p>
         <h2>2. Connect your phone</h2>
         <form id="settings">
-          <label>Desktop IP address <input
+          <label>Listening address <input
               id="ip"
+              aria-describedby="listen-help"
               list="addresses"
               required
               placeholder="192.168.1.20"
             ></label><datalist id="addresses"></datalist>
+          <p id="listen-help">
+            The web server listens on this desktop IP. Use 0.0.0.0 to listen on all IPv4 interfaces.
+          </p>
           <label>Web port <input
               id="port"
               type="number"
@@ -38,16 +42,25 @@
               value="8787"
               required
             ></label>
-          <label>Browser address <input
+          <label>Browser address (URL on your phone) <input
               id="origin"
               type="url"
               required
               placeholder="http://192.168.1.20:8787"
             ></label>
-          <label>Desktop IPv4 reachable by your phone <input id="audio_ip" required></label>
+          <label>Desktop IPv4 address for audio <input
+              id="audio_ip"
+              aria-describedby="audio-help"
+              required
+            ></label>
+          <p id="audio-help">
+            Enter a real, numeric IPv4 address for your desktop that can be reached over LAN or VPN.
+            Audio cannot use 0.0.0.0 or a hostname, this traffic cannot be proxied.
+          </p>
           <p>
-            Use an address reachable through your LAN/VPN. You manage the VPN, DNS and firewall.
-            Default audio ports: UDP 49160–49180; web: TCP 8787.
+            Audio uses UDP 49160–49180 by default. To change this range, edit <code>udp_min</code>
+            and <code>udp_max</code> in <code>config.json</code> and restart aFISHk. Allow the
+            chosen web and audio ports through your LAN/VPN firewall.
           </p>
           <h2>3. Game bindings</h2>
           <p>
