@@ -1,11 +1,11 @@
 # aFISHk
 
-**Fish in WoW: Forever from your phone, using your own Windows or Linux desktop and VPN.**
-Hear the game through your browser, tap to cast or reel, and take a screenshot
-when you want to check the scene. Each tap sends one **F** to the focused WoW
-window through FishFry. There is no automatic casting, bite detection or input
-timer. Use Moonlight/Parsec/TeamViewer/Rustdesk/VNC/Remote Desktop separately to
-manage your character or the desktop.
+**Fish in WoW: Forever from your phone, using your own Windows or Linux desktop,
+and the WiFi or a VPN.** Hear the game through your browser, tap to cast or reel,
+and take a screenshot when you want to check the scene. Each tap sends one **F**
+to the focused WoW window through FishFry. There is no automatic casting, bite
+detection or input timer. Use Moonlight/Parsec/TeamViewer/Rustdesk/VNC/Remote Desktop
+separately to manage your character or the desktop.
 
 <p align="center"><img src=".github/screenshot.png" alt="aFISHk mobile fishing controls" width="700" /></p>
 
@@ -235,7 +235,6 @@ services. Use the same overrides for upgrades, and pass a custom config path via
   LGPL-2.1-or-later, with [Opus](https://opus-codec.org/) under its BSD license.
   The matching source and build script are in the Windows media source archive
   beside each installer on [Releases](https://github.com/justinnamilee/aFISHk/releases).
-  Included license notices describe the components; FFmpeg remains replaceable.
 - Linux integration uses [KWin](https://develop.kde.org/docs/plasma/kwin/),
   [ydotool](https://github.com/ReimuNotMoe/ydotool) and [PipeWire](https://pipewire.org/).
 - Audio transport uses [Pion WebRTC](https://github.com/pion/webrtc).
