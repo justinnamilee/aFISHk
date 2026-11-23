@@ -1,15 +1,14 @@
 :root {
-  color-scheme: dark;
   font-family: system-ui, sans-serif;
-  background: #0e2026;
-  color: #e7f1e7;
+  background: var(--page);
+  color: var(--ink);
 }
 * {
   box-sizing: border-box;
 }
 body {
   margin: 0;
-  background: radial-gradient(ellipse at 90% 0%, #204d50, transparent 65%);
+  background: radial-gradient(ellipse at 90% 0%, var(--glow), transparent 65%);
 }
 main {
   max-width: 560px;
@@ -19,6 +18,27 @@ main {
 }
 header {
   margin-bottom: 28px;
+}
+.title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+#theme-cycle {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: 50%;
+  background: transparent;
+}
+.colour-wheel {
+  width: 21px;
+  height: 21px;
+  border-radius: 50%;
+  background: conic-gradient(#f48e86, #edc477, #99ce8b, #70c3cd, #93a7e3, #d19fce, #f48e86);
 }
 h1 {
   margin: 0;
@@ -33,7 +53,7 @@ h1 {
   align-items: center;
   gap: 12px;
   margin-top: 9px;
-  color: #ebc794;
+  color: var(--accent);
   font-family: Georgia, serif;
   font-size: 23px;
   font-style: italic;
@@ -45,17 +65,17 @@ h1 {
   flex: 0 1 96px;
   min-width: 24px;
   height: 9px;
-  border-top: 1px solid #ebc79480;
-  border-bottom: 1px solid #729c9770;
+  border-top: 1px solid color-mix(in srgb, var(--accent) 50%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--waterline, var(--muted)) 44%, transparent);
   border-radius: 50%;
   transform: rotate(-3deg);
 }
 button {
   font: inherit;
   color: inherit;
-  border: 1px solid #51716c;
+  border: 1px solid var(--border);
   border-radius: 14px;
-  background: #24413f;
+  background: var(--button);
   padding: 15px;
   cursor: pointer;
   touch-action: manipulation;
@@ -63,7 +83,7 @@ button {
 button:focus-visible,
 a:focus-visible,
 #activity-log:focus-visible {
-  outline: 3px solid #ebc794;
+  outline: 3px solid var(--accent);
   outline-offset: 4px;
 }
 button:disabled {
@@ -75,7 +95,7 @@ button:active:enabled {
 }
 @media (hover: hover) {
   button:hover:enabled {
-    border-color: #ebc794;
+    border-color: var(--accent);
   }
 }
 .fish-control {
@@ -88,9 +108,9 @@ button:active:enabled {
   width: 100%;
   padding: 25px 18px 28px;
   background:
-    radial-gradient(ellipse at top, #63826950, transparent 70%),
-    linear-gradient(145deg, #52705b, #304b42);
-  border-color: #a5b38c;
+    radial-gradient(ellipse at top, var(--sheen), transparent 70%),
+    linear-gradient(145deg, var(--fish-start), var(--fish-end));
+  border-color: var(--fish-border);
   box-shadow: inset 0 1px #ffffff14, 0 15px 60px #0003;
 }
 .fish-icon {
@@ -101,7 +121,7 @@ button:active:enabled {
   height: 1em;
 }
 #fish small {
-  color: #d2dfc6;
+  color: var(--hint);
   margin-top: 9px;
   font-size: 13px;
   line-height: 1.5;
@@ -113,14 +133,14 @@ button:active:enabled {
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: #ebc794;
-  box-shadow: 0 0 0 4px #0e20262b;
+  background: var(--accent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--page) 17%, transparent);
 }
 .connection[data-state="connected"] {
-  background: #91d5a1;
+  background: var(--online);
 }
 .connection[data-state="disconnected"] {
-  background: #ff9a8a;
+  background: var(--offline);
 }
 .sr-only {
   position: absolute;
@@ -153,9 +173,9 @@ h2 {
 }
 .activity {
   margin-top: 24px;
-  border: 1px solid #51716c80;
+  border: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
   border-radius: 14px;
-  background: #09191f66;
+  background: var(--panel);
   overflow: hidden;
 }
 .activity h2 {
@@ -164,7 +184,7 @@ h2 {
   justify-content: space-between;
   margin: 0;
   padding: 0 8px 0 15px;
-  border-bottom: 1px solid #51716c50;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 31%, transparent);
 }
 #log-sort {
   min-width: 44px;
@@ -173,7 +193,7 @@ h2 {
   border-color: transparent;
   border-radius: 8px;
   background: transparent;
-  color: #91aaa4;
+  color: var(--muted);
   font-size: 14px;
 }
 #activity-log {
@@ -182,24 +202,24 @@ h2 {
   overflow-anchor: none;
   overscroll-behavior: contain;
   padding: 10px 14px;
-  scrollbar-color: #51716c transparent;
+  scrollbar-color: var(--border) transparent;
 }
 .log-entry {
   margin: 0;
   padding: 4px 0;
-  color: #b8cdc7;
+  color: var(--log-text);
   font: 12px/1.6 ui-monospace, monospace;
   overflow-wrap: anywhere;
   white-space: pre-wrap;
 }
 .log-entry time {
-  color: #91aaa4;
+  color: var(--muted);
 }
 .log-entry.error {
-  color: #ffb5a6;
+  color: var(--error);
 }
 a {
-  color: #ebc794;
+  color: var(--accent);
 }
 #screenshot {
   display: block;
@@ -210,7 +230,7 @@ a {
 }
 footer {
   font-size: 10px;
-  color: #91aaa4;
+  color: var(--muted);
   margin-top: 24px;
   line-height: 1.7;
   text-align: center;

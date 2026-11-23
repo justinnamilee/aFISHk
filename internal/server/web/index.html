@@ -5,14 +5,22 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="theme-color" content="#0e2026" />
     <title>aFISHk · Fishing Remotely</title>
+    <link rel="stylesheet" href="/themes/classic.css" />
+    <link id="theme-palette" rel="stylesheet" />
     <link rel="stylesheet" href="/style.css" />
+    <script src="/themes.js" defer></script>
     <script src="/app.js" defer></script>
   </head>
 
   <body>
     <main>
       <header>
-        <h1>aFISHk</h1>
+        <div class="title-row">
+          <h1>aFISHk</h1>
+          <button id="theme-cycle" type="button" aria-label="Next theme" title="Next theme">
+            <span class="colour-wheel" aria-hidden="true"></span>
+          </button>
+        </div>
         <div class="tagline">
           <span>At the water’s edge.</span>
           <span class="waterline" aria-hidden="true"></span>
