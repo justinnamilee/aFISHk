@@ -1,0 +1,5 @@
+Fish and fishing pole artwork from Twemoji v16.0.1, by Twitter and contributors.
+Source: https://github.com/jdecked/twemoji/tree/v16.0.1/assets/svg
+Originals: 1f41f.svg (fish), 1f3a3.svg (fishing pole).
+Licensed under CC BY 4.0: https://creativecommons.org/licenses/by/4.0/
+Adapted for aFISHk with padding, a dark teal background and PNG export.
