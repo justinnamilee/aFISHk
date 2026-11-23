@@ -5,7 +5,7 @@ you identify the focused WoW window, choose your LAN/VPN address and save a
 random browser password. Click Finish setup to start the companion.
 Use the displayed address on your phone; any username works with that password.
 
-You provide FishFry Forever (manual cast/reel bound to F), VPN, DNS and firewall
+You provide FishFry Forever (manual cast/reel bound to your fishing key, default F), VPN, DNS and firewall
 rules. No AutoIt, developer tools or separate FFmpeg installation is needed.
 Run WoW and aFISHk as your normal signed-in user, not as administrator.
 Keep WoW focused and the desktop unlocked. Windowed/borderless mode is recommended.
