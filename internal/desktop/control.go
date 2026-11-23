@@ -7,8 +7,11 @@ import (
 	"image/png"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
+
+	"afishk/internal/privatefs"
 )
 
 type Controller struct {
@@ -16,6 +19,7 @@ type Controller struct {
 	Capture                Capturer
 	Input                  Input
 	Class, Title, CacheDir string
+	Executable             string
 	mu                     sync.Mutex
 	lastInput              time.Time
 }
@@ -28,7 +32,7 @@ func (c *Controller) Target(ctx context.Context) (Window, error) {
 	if err != nil {
 		return w, err
 	}
-	if w.Class != c.Class || w.Title != c.Title || w.ID == "" {
+	if w.Class != c.Class || w.Title != c.Title || w.ID == "" || (c.Executable != "" && !strings.EqualFold(c.Executable, w.Executable)) {
 		return Window{}, errors.New("WoW is not focused")
 	}
 	return w, nil
@@ -74,10 +78,7 @@ func (c *Controller) Screenshot(ctx context.Context) error {
 	return savePNG(c.CacheDir, img)
 }
 func savePNG(dir string, img image.Image) error {
-	if err := os.MkdirAll(dir, 0700); err != nil {
-		return err
-	}
-	if err := os.Chmod(dir, 0700); err != nil {
+	if err := privatefs.Dir(dir); err != nil {
 		return err
 	}
 	f, err := os.CreateTemp(dir, ".capture-*.png")

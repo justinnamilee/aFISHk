@@ -7,6 +7,7 @@ import (
 	"image"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 	"time"
 )
@@ -22,7 +23,7 @@ func (f *fakeDesktop) Capture(context.Context, string) (image.Image, error) {
 }
 func controller(t *testing.T) (*Controller, *fakeDesktop) {
 	t.Helper()
-	f := &fakeDesktop{w: Window{"id", "wow.exe", "World of Warcraft"}}
+	f := &fakeDesktop{w: Window{ID: "id", Class: "wow.exe", Title: "World of Warcraft"}}
 	return &Controller{Windows: f, Capture: f, Class: "wow.exe", Title: "World of Warcraft", CacheDir: t.TempDir()}, f
 }
 func TestFishRejectsWrongOrUnknownFocus(t *testing.T) {
@@ -94,7 +95,7 @@ func TestScreenshotPreservesLatestOnFailure(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if stat.Mode().Perm() != 0600 {
+	if runtime.GOOS != "windows" && stat.Mode().Perm() != 0600 {
 		t.Fatal(stat.Mode())
 	}
 	files, err := os.ReadDir(c.CacheDir)
@@ -159,3 +160,18 @@ func TestCaptureReceivesVerifiedID(t *testing.T) {
 type captureFunc func(context.Context, string) (image.Image, error)
 
 func (f captureFunc) Capture(ctx context.Context, id string) (image.Image, error) { return f(ctx, id) }
+
+func TestFishRejectsWrongExecutable(t *testing.T) {
+	c, f := controller(t)
+	c.Executable = "C:\\Games\\WoW.exe"
+	f.w.Executable = "C:\\Other\\WoW.exe"
+	calls := 0
+	c.Input = inputFunc(func(context.Context, Window) error { calls++; return nil })
+	if c.Fish(context.Background()) == nil || calls != 0 {
+		t.Fatal("wrong executable received input")
+	}
+	f.w.Executable = "c:\\games\\wow.exe"
+	if err := c.Fish(context.Background()); err != nil || calls != 1 {
+		t.Fatal("same Windows path rejected", err)
+	}
+}

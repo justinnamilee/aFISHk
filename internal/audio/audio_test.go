@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -151,10 +152,11 @@ func isolatedNetwork(se *webrtc.SettingEngine) {
 // This backend has no FFmpeg dependency: verify Manager owns cancellation,
 // failed-start cleanup, lease expiry and producer-exit cleanup for any backend.
 type fakeCapture struct {
-	fail   bool
-	ctx    context.Context
-	exit   chan struct{}
-	waited chan struct{}
+	fail        bool
+	ctx         context.Context
+	exit        chan struct{}
+	waited      chan struct{}
+	cleanupGate chan struct{}
 }
 
 func (f *fakeCapture) Start(ctx context.Context, _ string) (Process, error) {
@@ -170,7 +172,49 @@ func (f *fakeCapture) Wait() error {
 	case <-f.ctx.Done():
 	case <-f.exit:
 	}
+	if f.cleanupGate != nil {
+		<-f.cleanupGate
+	}
 	return nil
+}
+
+func TestShutdownHoldsSessionUntilProducerExits(t *testing.T) {
+	f := &fakeCapture{exit: make(chan struct{}), waited: make(chan struct{}), cleanupGate: make(chan struct{})}
+	m := New(config.Config{UDPMin: 49200, UDPMax: 49250}, f)
+	m.configure = isolatedNetwork
+	defer m.Close()
+	var release sync.Once
+	defer release.Do(func() { close(f.cleanupGate) })
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	offer := testOffer(t)
+	if _, err := m.Start(ctx, offer); err != nil {
+		t.Fatal(err)
+	}
+	stopped := make(chan struct{})
+	go func() { m.Stop(); close(stopped) }()
+	select {
+	case <-f.ctx.Done():
+	case <-ctx.Done():
+		t.Fatal("shutdown did not cancel the producer")
+	}
+	select {
+	case <-stopped:
+		t.Fatal("Stop returned before cleanup")
+	default:
+	}
+	if _, err := m.Start(ctx, offer); err == nil {
+		t.Fatal("accepted a second producer before cleanup finished")
+	}
+	if m.KeepAlive() {
+		t.Fatal("renewed a closing session")
+	}
+	release.Do(func() { close(f.cleanupGate) })
+	select {
+	case <-stopped:
+	case <-ctx.Done():
+		t.Fatal("Stop did not finish after producer cleanup")
+	}
 }
 
 func testOffer(t *testing.T) webrtc.SessionDescription {
@@ -231,6 +275,13 @@ func TestCaptureLifecycle(t *testing.T) {
 				m.mu.Lock()
 				m.session.timer.Reset(time.Millisecond)
 				m.mu.Unlock()
+			}
+			if mode == "stop" || mode == "close" {
+				select {
+				case <-f.waited:
+				default:
+					t.Fatal("shutdown returned before producer cleanup")
+				}
 			}
 			select {
 			case <-f.ctx.Done():

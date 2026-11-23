@@ -80,5 +80,5 @@ mv -f -- "$service_tmp" "$SYSTEMD_USER_DIR/afishk.service"
 mv -f -- "$desktop_tmp" "$APPLICATIONSDIR/org.afishk.Companion.desktop"
 if command -v update-desktop-database >/dev/null; then update-desktop-database "$APPLICATIONSDIR"; fi
 if ! systemctl --user daemon-reload; then echo 'No user bus: run systemctl --user daemon-reload in your desktop session.' >&2; fi
-printf 'Installed. New configuration: %s/afishk setup --config %s/config.json\n' "$BINDIR" "$CONFIGDIR"
+printf 'Installed. New configuration: %s/afishk setup --web --config %s/config.json\n' "$BINDIR" "$CONFIGDIR"
 printf '%s\n' 'Existing configuration is preserved. Validate before explicitly starting or restarting afishk.'

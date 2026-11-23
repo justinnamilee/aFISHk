@@ -30,13 +30,15 @@ jobs:
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
+      - name: Install Linux cross-packaging tools
+        run: sudo apt-get update && sudo apt-get install -y nsis gcc-mingw-w64-x86-64 binutils-mingw-w64-x86-64 mingw-w64-common pkg-config make curl xz-utils
       - name: Check release tag and package tested source
         env:
           TAG: ${{ inputs.tag || github.ref_name }}
         run: |
           [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]
           test "$(git rev-parse HEAD)" = "$(git rev-parse "refs/tags/$TAG^{commit}")"
-          ./scripts/package.sh "$TAG"
+          make release VERSION="$TAG"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: release-assets
@@ -63,6 +65,6 @@ jobs:
           if gh release view "$TAG" --json isDraft > release.json; then
             test "$(jq -r .isDraft release.json)" = true || { echo 'Refusing to modify a published release'; exit 1; }
           else
-            gh release create "$TAG" --verify-tag --draft --title "aFISHk $TAG" --generate-notes
+            gh release create "$TAG" --verify-tag --draft --title "aFISHk $TAG" --notes "Windows includes FFmpeg (LGPL-2.1-or-later) and Opus (BSD). Matching source and build instructions: afishk_${TAG}_windows_media_sources.tar.gz. See installed license notices." --generate-notes
           fi
-          gh release upload "$TAG" dist/*.tar.gz dist/SHA256SUMS --clobber
+          gh release upload "$TAG" dist/*.tar.gz dist/*_setup.exe dist/SHA256SUMS --clobber

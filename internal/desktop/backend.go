@@ -8,9 +8,10 @@ import (
 
 // Window identifies a single native window; ID is opaque to the controller.
 type Window struct {
-	ID    string `json:"id"`
-	Class string `json:"class"`
-	Title string `json:"title"`
+	Executable string `json:"executable,omitempty"`
+	ID         string `json:"id"`
+	Class      string `json:"class"`
+	Title      string `json:"title"`
 }
 
 // WindowSource must fail when focus or unlocked-session state cannot be verified.
