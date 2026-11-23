@@ -41,6 +41,7 @@ type webWizard struct {
 }
 
 type webSettings struct {
+	LureKey string  `json:"lure_key"`
 	FishKey *string `json:"fish_key"`
 	Listen  string  `json:"listen"`
 	Origin  string  `json:"origin"`
@@ -220,6 +221,7 @@ func (w *webWizard) handler() http.Handler {
 
 func (w *webWizard) configuration(v webSettings) (config.Config, error) {
 	c := w.defaults
+	c.LureKey = strings.TrimSpace(v.LureKey)
 	if v.FishKey != nil {
 		c.FishKey = *v.FishKey
 	}

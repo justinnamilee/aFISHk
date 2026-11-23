@@ -13,6 +13,7 @@ import (
 
 type fakeDesktop struct{ calls int }
 
+func (f *fakeDesktop) Lure(context.Context) error       { f.calls++; return nil }
 func (f *fakeDesktop) Fish(context.Context) error       { f.calls++; return nil }
 func (f *fakeDesktop) Screenshot(context.Context) error { return nil }
 func TestProtectAllRoutesAndCSRF(t *testing.T) {
@@ -31,9 +32,9 @@ func TestProtectAllRoutesAndCSRF(t *testing.T) {
 		t.Fatal(err)
 	}
 	h := s.Handler()
-	for _, path := range []string{"/", "/health", "/app.js", "/api/status", "/api/screenshot.png", "/api/fish", "/api/audio/offer", "/api/audio/stop"} {
+	for _, path := range []string{"/", "/health", "/app.js", "/api/status", "/api/screenshot.png", "/api/fish", "/api/lure", "/api/audio/offer", "/api/audio/stop"} {
 		method := "GET"
-		if path == "/api/fish" || path == "/api/audio/offer" || path == "/api/audio/stop" {
+		if path == "/api/lure" || path == "/api/fish" || path == "/api/audio/offer" || path == "/api/audio/stop" {
 			method = "POST"
 		}
 		r := httptest.NewRequest(method, "http://127.0.0.1:8787"+path, nil)

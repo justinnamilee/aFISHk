@@ -110,7 +110,7 @@ func serve(ctx context.Context, c config.Config, ready func()) error {
 		return err
 	}
 	defer k.Close()
-	control := &desktop.Controller{FishKey: c.FishKey, Windows: k.Windows, Capture: k.Capture, Input: k.Input, Class: c.GameClass, Title: c.GameTitle, CacheDir: c.CacheDir, Executable: c.GameExecutable}
+	control := &desktop.Controller{FishKey: c.FishKey, LureKey: c.LureKey, Windows: k.Windows, Capture: k.Capture, Input: k.Input, Class: c.GameClass, Title: c.GameTitle, CacheDir: c.CacheDir, Executable: c.GameExecutable}
 	a := audio.New(c, k.Audio)
 	defer a.Close()
 	app, err := server.New(c, control, a)

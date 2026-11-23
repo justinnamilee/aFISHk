@@ -15,6 +15,7 @@ import (
 )
 
 type Config struct {
+	LureKey                 string `json:"lure_key,omitempty"`
 	FishKey                 string `json:"fish_key"`
 	GameExecutable          string `json:"game_executable,omitempty"`
 	Listen                  string `json:"listen"`
@@ -106,6 +107,11 @@ func (c Config) Validate() error {
 	}
 	if _, err := keybind.Parse(c.FishKey); err != nil {
 		return fmt.Errorf("fish_key: %w", err)
+	}
+	if c.LureKey != "" {
+		if _, err := keybind.Parse(c.LureKey); err != nil {
+			return fmt.Errorf("lure_key: %w", err)
+		}
 	}
 	return validatePlatform(c)
 }
