@@ -173,8 +173,15 @@ navigation and numpad keys are supported. Existing configurations use **F**.
 **Add lure** sends the optional **Lure key** you record in the same setup screen.
 Leaving it blank makes the button log an error when tapped. To set it later,
 edit `config.json` (for example, `"lure_key": "Shift+2"`) and restart aFISHk.
-You can also stop aFISHk, move `config.json` aside and run browser setup again.
 The fishing binding uses the `fish_key` field.
+
+To use browser setup again, keep the `token` file to preserve your browser password.
+
+- **Windows:** Choose **Stop aFISHk** from Start, open **Settings folder**, and rename
+  `config.json` to `config.json.bak`. Launch **aFISHk** from Start to open setup.
+- **Linux:** Run `systemctl --user stop afishk` and move `config.json` aside
+  (normally in `~/.config/afishk/`). Run `~/.local/bin/afishk setup --web`,
+  finish setup, then run `systemctl --user start afishk`.
 
 Allow these **destination ports on the desktop**, restricted to your trusted
 LAN/VPN clients:
@@ -184,11 +191,15 @@ LAN/VPN clients:
 | TCP | `8787` | Web page, controls, screenshots and audio negotiation |
 | UDP | `49160–49180` | WebRTC audio |
 
-The client (phone, etc) must resolve the hostname you chose and reach the desktop's
-audio IPv4.  `public_origin` must exactly match the browser URL's scheme, hostname
-and port, without a path. `ice_address` is the desktop IPv4 reachable by the client.
-An HTTP reverse proxy does not carry the UDP audio stream; there is no public STUN/TURN
-relay.
+| Browser setup field | What to enter |
+| --- | --- |
+| Listening address and web port (`listen`) | The local address and TCP port for the web server. Setup suggests a desktop LAN IP. Use `0.0.0.0` to listen on all IPv4 interfaces. |
+| Browser address (`public_origin`) | The exact URL your phone opens, including scheme and port, without a path. A hostname your phone can resolve is fine, for example `http://suzuki:8787`. |
+| Desktop IPv4 address for audio (`ice_address`) | A numeric desktop IPv4 your phone can reach over LAN or VPN, for example `10.6.6.34`. A private LAN IP is fine. Hostnames and `0.0.0.0` are invalid here. |
+
+Audio defaults to the same LAN IP. Change its UDP port range only in
+`config.json` using `udp_min` and `udp_max`, then restart aFISHk.
+Your phone needs a direct UDP route for audio even when the web page uses an HTTP reverse proxy.
 
 Open your configured browser URL. Sign in with **any username** and your generated
 token as password. Tap **Listen to desktop**; if autoplay is blocked, tap Play in the
