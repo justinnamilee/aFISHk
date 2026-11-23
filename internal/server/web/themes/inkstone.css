@@ -1,0 +1,20 @@
+:root {
+  color-scheme: dark;
+  --page: #20242a;
+  --glow: #3a454e;
+  --ink: #f0eee9;
+  --accent: #e6cd99;
+  --button: #313940;
+  --border: #6b7982;
+  --fish-start: #49535c;
+  --fish-end: #343c44;
+  --muted: #b3b9bd;
+  --hint: var(--ink);
+  --log-text: var(--ink);
+  --fish-border: var(--border);
+  --sheen: #ffffff12;
+  --panel: #00000018;
+  --error: #ffb5a6;
+  --online: #91d5a1;
+  --offline: #ff9a8a;
+}
