@@ -22,18 +22,21 @@ separately to manage your character or the desktop.
 ### Windows
 
 **Windows 11 on an Intel/AMD x64 PC.** Run WoW and aFISHk as the same normal user;
-do not use “Run as administrator.” Use WoW in windowed or borderless mode for
+**do not use “Run as administrator.”** Use WoW in windowed or borderless mode for
 screenshots.  Windows ARM builds are not provided.
 
 Audio captures the **Windows default playback device**, including other desktop
-sound. After changing that device, stop listening and start listening again.
+sound. After changing playback devices, stop listening and start listening again.
 
 ### Linux
 
 **Nobara/Fedora, KDE Plasma 6 and Wayland**, with PipeWire Pulse compatibility,
-FFmpeg supporting `pulse` input and `libopus`, and ydotool. The Linux setup helper
-installs runtime dependencies. Other Linux desktop environments are not yet supported.
-Audio captures the selected Pulse monitor, including other desktop sound.
+FFmpeg supporting `pulse` input and `libopus`, and ydotool. **The Linux setup helper
+install these runtime dependencies.** Other Linux desktop environments are not yet supported.
+
+Audio captures the selected Pulse monitor, including other desktop sound. After changing
+playback devices, stop listening and start listening again (a service restart may be
+required on linux as well).
 
 ## Install on Windows
 
@@ -44,8 +47,10 @@ Audio captures the selected Pulse monitor, including other desktop sound.
 3. Open **aFISHk** from the finish page or Start Menu. First run opens a local
    browser setup page on this computer.
 4. Click **Identify WoW**, then focus the game within five seconds. Return to
-   setup, choose your desktop LAN/VPN address, and save the settings.
-5. Copy the generated browser password, then click **Finish setup**. The companion
+   setup.
+5. Choose your desktop LAN/VPN address, connectable URL, and IPv4 audio.
+6. Configure your fishing and lure keys (lure is optional), and save settings.
+7. Copy the generated browser password, then click **Finish setup**. The companion
    starts. Open the displayed address on your phone and sign in with any username
    and that password.
 
@@ -94,7 +99,7 @@ requests `ffmpeg-free` from your enabled repositories.
 
 If you already manage ydotool, add `--existing-ydotool`. Set `YDOTOOL_SOCKET` in a
 `systemctl --user edit afishk` override if needed; the dedicated daemon's default
-socket is `/run/afishk-input-<UID>/socket`.
+socket is `/run/afishk-input-$(id -u)/socket`.
 
 ### From source
 
@@ -111,20 +116,24 @@ make install
 
 ### Configure and start
 
-Both installation methods use the same browser setup:
+Both linux installation methods use the same browser setup:
 
 ```bash
 ~/.local/bin/afishk setup --web
 ```
 
-Click **Identify WoW**, focus the game within five seconds, return to the browser,
-then choose your desktop LAN/VPN address. Save the generated password and click
-**Finish setup**. The wizard is local to this computer and never overwrites an
-existing configuration. If your browser does not open, use the local URL printed
-in the terminal. Terminal setup remains available with `afishk inspect` followed
+1. Click **Identify WoW**, then focus the game within five seconds. Return to
+   setup.
+2. Choose your desktop LAN/VPN address, connectable URL, and IPv4 audio.
+3. Configure your fishing and lure keys (lure is optional), and save settings.
+4. Copy the generated browser password, then click **Finish setup**. The companion
+   starts. Open the displayed address on your phone and sign in with any username
+   and that password.
+
+Alternatively, terminal setup is available with `afishk inspect` followed
 by `afishk setup`.
 
-Start the installed user service:
+#### Start the installed user service
 
 ```bash
 systemctl --user import-environment WAYLAND_DISPLAY DISPLAY XDG_CURRENT_DESKTOP
@@ -136,6 +145,8 @@ Optionally enable startup with your graphical session:
 ```bash
 systemctl --user enable afishk
 ```
+
+#### Additional linux installation notes
 
 The binary is installed in `~/.local/bin/afishk`; config and password are in
 `${XDG_CONFIG_HOME:-$HOME/.config}/afishk/`. The cache follows XDG cache settings.
@@ -173,15 +184,8 @@ navigation and numpad keys are supported. Existing configurations use **F**.
 **Add lure** sends the optional **Lure key** you record in the same setup screen.
 Leaving it blank makes the button log an error when tapped. To set it later,
 edit `config.json` (for example, `"lure_key": "Shift+2"`) and restart aFISHk.
-The fishing binding uses the `fish_key` field.
 
-To use browser setup again, keep the `token` file to preserve your browser password.
-
-- **Windows:** Choose **Stop aFISHk** from Start, open **Settings folder**, and rename
-  `config.json` to `config.json.bak`. Launch **aFISHk** from Start to open setup.
-- **Linux:** Run `systemctl --user stop afishk` and move `config.json` aside
-  (normally in `~/.config/afishk/`). Run `~/.local/bin/afishk setup --web`,
-  finish setup, then run `systemctl --user start afishk`.
+### Port requirements
 
 Allow these **destination ports on the desktop**, restricted to your trusted
 LAN/VPN clients:
@@ -191,11 +195,25 @@ LAN/VPN clients:
 | TCP | `8787` | Web page, controls, screenshots and audio negotiation |
 | UDP | `49160–49180` | WebRTC audio |
 
+### Re-run browser setup
+
+**To re-run browser setup again**, keep the `token` file to preserve your browser password, then:
+
+- **Windows:** Choose **Stop aFISHk** from Start, open **Settings folder**, and rename
+  `config.json` to `config.json.bak` (or delete). Launch **aFISHk** from Start to open setup.
+- **Linux:** Run `systemctl --user stop afishk` and move `config.json` aside
+  (or delete, it's normally in `~/.config/afishk/`). Run `~/.local/bin/afishk setup --web`,
+  finish setup, then run `systemctl --user start afishk`.
+
+### Browser setup tips
+
 | Browser setup field | What to enter |
 | --- | --- |
 | Listening address and web port (`listen`) | The local address and TCP port for the web server. Setup suggests a desktop LAN IP. Use `0.0.0.0` to listen on all IPv4 interfaces. |
 | Browser address (`public_origin`) | The exact URL your phone opens, including scheme and port, without a path. A hostname your phone can resolve is fine, for example `http://suzuki:8787`. |
 | Desktop IPv4 address for audio (`ice_address`) | A numeric desktop IPv4 your phone can reach over LAN or VPN, for example `10.6.6.34`. A private LAN IP is fine. Hostnames and `0.0.0.0` are invalid here. |
+
+### Audio tips
 
 Audio defaults to the same LAN IP. Change its UDP port range only in
 `config.json` using `udp_min` and `udp_max`, then restart aFISHk.
@@ -208,8 +226,12 @@ listen for a bite, then tap to reel. **Fresh screenshot** captures the game wind
 Failed captures preserve the previous successful image. The green dot indicates
 that the service is reachable, not that WoW is focused or a fish has been caught.
 
+### Themes
+
 Tap the colour wheel beside **aFISHk** to cycle through the themes. The first tap
 switches from Classic to Dark Mode. Your browser remembers your choice for the next visit.
+
+Feel free to open a PR with new theme(s), they are always welcome.
 
 ## Troubleshooting
 
@@ -240,9 +262,6 @@ loopback/lan and preserve Host, Origin, Authorization and X-CSRF-Token headers.
 Forwarded headers are not trusted. UDP media still needs its **direct** route.
 Certificate issuance and renewal are your responsibility; restart after replacing
 certificate files.
-
-To change the desktop audio port range, edit `udp_min` and `udp_max`, then restart.
-The range is inclusive; equal values select a single available port.
 
 Linux install paths accept `BINDIR`, `CONFIGDIR`, `SYSTEMD_USER_DIR`,
 `APPLICATIONSDIR` and `BINARY` as environment variables or Make arguments. Directory
