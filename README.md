@@ -169,7 +169,12 @@ input daemon with `sudo systemctl disable --now "afishk-input-$(id -u).service"`
 In browser setup, click **Record fishing key** and press your in-game binding, or
 type it (for example, `Ctrl+Shift+4`). Letters, digits, F1–F12, punctuation,
 navigation and numpad keys are supported. Existing configurations use **F**.
-To change it later, edit `fish_key` in `config.json` and restart aFISHk.
+
+**Add lure** sends the optional **Lure key** you record in the same setup screen.
+Leaving it blank makes the button log an error when tapped. To set it later,
+edit `config.json` (for example, `"lure_key": "Shift+2"`) and restart aFISHk.
+You can also stop aFISHk, move `config.json` aside and run browser setup again.
+The fishing binding uses the `fish_key` field.
 
 Allow these **destination ports on the desktop**, restricted to your trusted
 LAN/VPN clients:

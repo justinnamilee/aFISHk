@@ -176,3 +176,34 @@ func TestFishRejectsWrongExecutable(t *testing.T) {
 		t.Fatal("same Windows path rejected", err)
 	}
 }
+
+type chordRecorder struct{ calls [][]keybind.Key }
+
+func (r *chordRecorder) SendKeys(_ context.Context, _ Window, keys []keybind.Key) error {
+	r.calls = append(r.calls, keys)
+	return nil
+}
+func TestManualLure(t *testing.T) {
+	c, source := controller(t)
+	input := &chordRecorder{}
+	c.Input = input
+	ctx := context.Background()
+	if err := c.Lure(ctx); err == nil || len(input.calls) != 0 {
+		t.Fatal("unset lure must reject without input")
+	}
+	c.LureKey = "Ctrl+8"
+	source.w.Title = "other"
+	if err := c.Lure(ctx); err == nil || len(input.calls) != 0 {
+		t.Fatal("lure allowed on wrong window")
+	}
+	source.w.Title = c.Title
+	if err := c.Lure(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if len(input.calls) != 1 || len(input.calls[0]) != 2 || input.calls[0][0].Linux != 29 || input.calls[0][1].Linux != 9 {
+		t.Fatal(input.calls)
+	}
+	if err := c.Fish(ctx); err == nil || len(input.calls) != 1 {
+		t.Fatal("actions must share input throttle")
+	}
+}

@@ -61,6 +61,7 @@ function showConnection(message, error = false) {
   if (changed) log(message, error);
 }
 function controls() {
+  $('lure').disabled = !connected || busy;
   $('fish').disabled = !connected || busy;
   $('capture').disabled = !connected || busy;
   $('audio-start').disabled = !connected || !!pc || audioBusy;
@@ -210,6 +211,7 @@ async function startAudio() {
   }
 }
 $('fish').addEventListener('click', () => action('/api/fish'));
+$('lure').addEventListener('click', () => action('/api/lure'));
 $('capture').addEventListener('click', () => action('/api/screenshot'));
 $('audio-start').addEventListener('click', startAudio);
 $('audio-stop').addEventListener('click', () => stopAudio());

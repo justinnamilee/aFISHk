@@ -77,6 +77,7 @@ $('settings').addEventListener('submit', async (event) => {
   $('save').disabled = true;
   try {
     const data = await request('/api/save', {
+      lure_key: $('lure_key').value,
       fish_key: $('fish_key').value,
       listen: `${$('ip').value}:${$('port').value}`,
       origin: $('origin').value,

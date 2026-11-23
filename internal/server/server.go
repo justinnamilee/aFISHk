@@ -27,6 +27,7 @@ var web embed.FS
 
 type Desktop interface {
 	Fish(context.Context) error
+	Lure(context.Context) error
 	Screenshot(context.Context) error
 }
 type Audio interface {
@@ -75,6 +76,13 @@ func (s *Server) Handler() http.Handler {
 			return
 		}
 		writeJSON(w, map[string]string{"message": "Fishing key sent"})
+	})
+	mux.HandleFunc("POST /api/lure", func(w http.ResponseWriter, r *http.Request) {
+		if err := s.Desktop.Lure(r.Context()); err != nil {
+			http.Error(w, err.Error(), http.StatusConflict)
+			return
+		}
+		writeJSON(w, map[string]string{"message": "Lure key sent"})
 	})
 	mux.HandleFunc("POST /api/screenshot", func(w http.ResponseWriter, r *http.Request) {
 		ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)

@@ -20,7 +20,7 @@ type Controller struct {
 	Capture                Capturer
 	Input                  Input
 	Class, Title, CacheDir string
-	FishKey                string
+	FishKey, LureKey       string
 	Executable             string
 	mu                     sync.Mutex
 	lastInput              time.Time
@@ -41,6 +41,17 @@ func (c *Controller) Target(ctx context.Context) (Window, error) {
 }
 
 func (c *Controller) Fish(ctx context.Context) error {
+	return c.sendBinding(ctx, c.FishKey)
+}
+
+func (c *Controller) Lure(ctx context.Context) error {
+	if c.LureKey == "" {
+		return errors.New("no lure key configured; set lure_key in config.json")
+	}
+	return c.sendBinding(ctx, c.LureKey)
+}
+
+func (c *Controller) sendBinding(ctx context.Context, binding string) error {
 	// Drop busy requests instead of queueing delayed keypresses.
 	if !c.mu.TryLock() {
 		return errors.New("desktop action busy; tap again when ready")
@@ -58,7 +69,7 @@ func (c *Controller) Fish(ctx context.Context) error {
 	}
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
-	keys, err := keybind.Parse(c.FishKey)
+	keys, err := keybind.Parse(binding)
 	if err != nil {
 		return err
 	}
