@@ -14,9 +14,16 @@ async function request(path, data) {
 function message(text) {
   $('message').textContent = text;
 }
+let suggestedHost = '';
+let suggestedOrigin = '';
 function addressChanged() {
-  $('origin').value = `http://${$('ip').value}:${$('port').value}`;
-  $('audio_ip').value = $('ip').value;
+  const listen = $('ip').value.trim();
+  const host = listen && listen !== '0.0.0.0' ? listen : suggestedHost;
+  const origin = host ? `http://${host}:${$('port').value}` : '';
+  if ($('origin').value === suggestedOrigin) $('origin').value = origin;
+  if ($('audio_ip').value === suggestedHost) $('audio_ip').value = host;
+  suggestedHost = host;
+  suggestedOrigin = origin;
 }
 for (const button of document.querySelectorAll('[data-record]')) {
   const field = $(button.dataset.record);
