@@ -59,7 +59,7 @@ func TestWizardRejectsCrossOriginAndRebinding(t *testing.T) {
 }
 func TestWizardSavesVerifiedTargetAndNeverOverwrites(t *testing.T) {
 	w := testWizard(t)
-	body := `{"listen":"192.168.1.10:8787","origin":"http://192.168.1.10:8787","audio_ip":"192.168.1.10","pulse_source":"@DEFAULT_MONITOR@","tls":"no"}`
+	body := `{"fish_key":"Ctrl+Shift+4","listen":"192.168.1.10:8787","origin":"http://192.168.1.10:8787","audio_ip":"192.168.1.10","pulse_source":"@DEFAULT_MONITOR@","tls":"no"}`
 	out := httptest.NewRecorder()
 	w.handler().ServeHTTP(out, wizardRequest(w, "POST", "/api/save", body))
 	if out.Code != 200 {
@@ -75,6 +75,9 @@ func TestWizardSavesVerifiedTargetAndNeverOverwrites(t *testing.T) {
 	c, err := config.Load(w.path)
 	if err != nil {
 		t.Fatal(err)
+	}
+	if c.FishKey != "Ctrl+Shift+4" {
+		t.Fatal("fishing binding was not saved")
 	}
 	if c.GameClass != w.target.Class || c.GameTitle != w.target.Title || c.GameExecutable != w.target.Executable {
 		t.Fatal("unverified target persisted")

@@ -2,6 +2,7 @@
 package desktop
 
 import (
+	"afishk/internal/keybind"
 	"context"
 	"image"
 )
@@ -25,8 +26,8 @@ type Capturer interface {
 	Capture(context.Context, string) (image.Image, error)
 }
 
-// Input sends one F press/release to the verified target. Implementations must
+// Input sends one configured chord to the verified target. Implementations must
 // never retry key-down; a best-effort key-up is permitted after failure.
 type Input interface {
-	SendF(context.Context, Window) error
+	SendKeys(context.Context, Window, []keybind.Key) error
 }

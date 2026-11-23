@@ -1,6 +1,7 @@
 package desktop
 
 import (
+	"afishk/internal/keybind"
 	"context"
 	"errors"
 	"image"
@@ -19,6 +20,7 @@ type Controller struct {
 	Capture                Capturer
 	Input                  Input
 	Class, Title, CacheDir string
+	FishKey                string
 	Executable             string
 	mu                     sync.Mutex
 	lastInput              time.Time
@@ -56,8 +58,12 @@ func (c *Controller) Fish(ctx context.Context) error {
 	}
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
+	keys, err := keybind.Parse(c.FishKey)
+	if err != nil {
+		return err
+	}
 	c.lastInput = time.Now()
-	return c.Input.SendF(ctx, w)
+	return c.Input.SendKeys(ctx, w, keys)
 }
 func (c *Controller) Screenshot(ctx context.Context) error {
 	if !c.mu.TryLock() {
