@@ -11,7 +11,7 @@
 
 ## Behavior to preserve
 
-- One explicit tap sends one F key. Never add automatic input, cast/reel scheduling, bite detection, arbitrary keys, or automatic input retries.
+- One explicit tap sends one locally configured binding. Never add automatic input, cast/reel scheduling, bite detection, client-supplied keys, or automatic input retries.
 - Reject desktop actions when focus, exact game identity or lock state is unknown. Never activate a window to make an action succeed.
 - Capture the verified native window identity (KWin UUID on Linux; HWND/process identity on Windows); never fall back to active-window or whole-desktop capture, or bypass platform permissions.
 - Preserve the last successful PNG on failure and keep cache files private.
@@ -25,7 +25,7 @@
 - Use `make fmt`: gofmt for Go, shfmt for Bash, dprint for HTML/CSS/JS. Pin the dprint binary version/checksums in `scripts/dprint.sh` and plugin versions/checksums in `dprint.json`.
 - Run `make check`, `make lint` and `make build` before delivery. FFmpeg must be available so the audio integration test runs. Record validation results and any skipped or blocked checks accurately in the PR, never in README.md.
 - For packaging changes, run `make package VERSION=v1.0.0-rc.1` and inspect both archives. Keep build/install usable without Node or formatter dependencies. Linux runtime archives must contain only the root binary, sample config, README, LICENSE, `scripts/linux` runtime helpers and `inc/linux` integration files; no Makefile, source or developer tools. Installer tests use temporary destinations and mocked system commands; never invoke real desktop setup in CI.
-- Automated tests cannot validate Nobara/KDE hardware, FishFry, Android playback or VPN latency. Put the required manual checks and their completion status in the PR: focused one-tap/one-F input, rejection on wrong focus or locked/unknown session, targeted screenshots and previous-image preservation, desktop/Android audio, and VPN/reconnection behavior. Do not add or refer contributors to a README validation checklist.
+- Automated tests cannot validate Nobara/KDE hardware, FishFry, Android playback or VPN latency. Put the required manual checks and their completion status in the PR: focused one-tap/one-binding input, rejection on wrong focus or locked/unknown session, targeted screenshots and previous-image preservation, desktop/Android audio, and VPN/reconnection behavior. Do not add or refer contributors to a README validation checklist.
 - Keep GitHub Actions pinned to commit SHAs. Release workflows must create drafts and refuse to modify published releases.
 
 ## Backend architecture and extension
@@ -38,7 +38,7 @@ and audio settings when extending or refactoring backends.
 | --- | --- |
 | `desktop.WindowSource` | Return the focused native window only after verifying the session is unlocked; fail if either state is unknown. Never activate a window. |
 | `desktop.Capturer` | Capture only the supplied opaque native window ID; never fall back to the active window or whole desktop, or bypass platform permissions. |
-| `desktop.Input` | Send one F press/release to the verified target, without window activation or key-down retries. Best-effort key-up is permitted after failure. |
+| `desktop.Input` | Send one configured chord with reverse-order releases to the verified target, without window activation or key-down retries. Best-effort key-up is permitted after failure. |
 | `audio.Capture` / `audio.Process` | Start an Opus RTP producer for the supplied loopback destination (48 kHz, stereo, payload type 111). Cancellation must stop the producer and unblock its single `Wait` call; failed startup must release resources. |
 
 The shared desktop controller owns exact class/title matching, action exclusion,

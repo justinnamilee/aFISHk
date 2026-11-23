@@ -18,6 +18,34 @@ function addressChanged() {
   $('origin').value = `http://${$('ip').value}:${$('port').value}`;
   $('audio_ip').value = $('ip').value;
 }
+for (const button of document.querySelectorAll('[data-record]')) {
+  const field = $(button.dataset.record);
+  let recording = false;
+  function finish() {
+    recording = false;
+    button.textContent = 'Record ' + field.labels[0].textContent.trim().toLowerCase();
+  }
+  button.addEventListener('click', () => {
+    recording = true;
+    button.textContent = 'Press a key…';
+  });
+  button.addEventListener('blur', finish);
+  button.addEventListener('keydown', (event) => {
+    if (!recording || event.key === 'Tab') return;
+    event.preventDefault();
+    if (event.repeat || ['Control', 'Shift'].includes(event.key)) return;
+    const base = event.code.replace(/^(?:Key(?=[A-Z]$)|Digit(?=[0-9]$))/, '');
+    if (event.metaKey || event.altKey || !base || base === 'Unidentified') {
+      message('Choose a key with optional Ctrl or Shift.');
+      return;
+    }
+    field.value = [event.ctrlKey && 'Ctrl', event.shiftKey && 'Shift', base].filter(Boolean).join(
+      '+',
+    );
+    finish();
+    field.focus();
+  });
+}
 $('ip').addEventListener('change', addressChanged);
 $('port').addEventListener('change', addressChanged);
 $('detect').addEventListener('click', async () => {
@@ -49,6 +77,7 @@ $('settings').addEventListener('submit', async (event) => {
   $('save').disabled = true;
   try {
     const data = await request('/api/save', {
+      fish_key: $('fish_key').value,
       listen: `${$('ip').value}:${$('port').value}`,
       origin: $('origin').value,
       audio_ip: $('audio_ip').value,

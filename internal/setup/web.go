@@ -41,13 +41,14 @@ type webWizard struct {
 }
 
 type webSettings struct {
-	Listen  string `json:"listen"`
-	Origin  string `json:"origin"`
-	AudioIP string `json:"audio_ip"`
-	Pulse   string `json:"pulse_source"`
-	TLS     string `json:"tls"`
-	Cert    string `json:"cert"`
-	Key     string `json:"key"`
+	FishKey *string `json:"fish_key"`
+	Listen  string  `json:"listen"`
+	Origin  string  `json:"origin"`
+	AudioIP string  `json:"audio_ip"`
+	Pulse   string  `json:"pulse_source"`
+	TLS     string  `json:"tls"`
+	Cert    string  `json:"cert"`
+	Key     string  `json:"key"`
 }
 
 // RunWeb is a temporary, loopback-only first-run wizard. It never replaces an
@@ -219,6 +220,9 @@ func (w *webWizard) handler() http.Handler {
 
 func (w *webWizard) configuration(v webSettings) (config.Config, error) {
 	c := w.defaults
+	if v.FishKey != nil {
+		c.FishKey = *v.FishKey
+	}
 	c.Listen, c.PublicOrigin, c.ICEAddress = v.Listen, v.Origin, v.AudioIP
 	c.GameClass, c.GameTitle, c.GameExecutable = w.target.Class, w.target.Title, w.target.Executable
 	if runtime.GOOS == "linux" {

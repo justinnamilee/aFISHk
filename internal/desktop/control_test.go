@@ -1,6 +1,7 @@
 package desktop
 
 import (
+	"afishk/internal/keybind"
 	"bytes"
 	"context"
 	"errors"
@@ -24,7 +25,7 @@ func (f *fakeDesktop) Capture(context.Context, string) (image.Image, error) {
 func controller(t *testing.T) (*Controller, *fakeDesktop) {
 	t.Helper()
 	f := &fakeDesktop{w: Window{ID: "id", Class: "wow.exe", Title: "World of Warcraft"}}
-	return &Controller{Windows: f, Capture: f, Class: "wow.exe", Title: "World of Warcraft", CacheDir: t.TempDir()}, f
+	return &Controller{FishKey: "F", Windows: f, Capture: f, Class: "wow.exe", Title: "World of Warcraft", CacheDir: t.TempDir()}, f
 }
 func TestFishRejectsWrongOrUnknownFocus(t *testing.T) {
 	for _, kind := range []string{"class", "title", "missing", "error"} {
@@ -106,7 +107,7 @@ func TestScreenshotPreservesLatestOnFailure(t *testing.T) {
 
 type inputFunc func(context.Context, Window) error
 
-func (f inputFunc) SendF(ctx context.Context, w Window) error { return f(ctx, w) }
+func (f inputFunc) SendKeys(ctx context.Context, w Window, _ []keybind.Key) error { return f(ctx, w) }
 
 func TestFailedInputIsNotRetried(t *testing.T) {
 	c, _ := controller(t)

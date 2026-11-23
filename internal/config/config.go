@@ -2,6 +2,7 @@
 package config
 
 import (
+	"afishk/internal/keybind"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -14,6 +15,7 @@ import (
 )
 
 type Config struct {
+	FishKey                 string `json:"fish_key"`
 	GameExecutable          string `json:"game_executable,omitempty"`
 	Listen                  string `json:"listen"`
 	PublicOrigin            string `json:"public_origin"`
@@ -38,7 +40,7 @@ func Defaults() (Config, error) {
 	if err != nil {
 		return Config{}, err
 	}
-	c := Config{Listen: "127.0.0.1:8787", CacheDir: filepath.Join(cache, "afishk"),
+	c := Config{FishKey: "F", Listen: "127.0.0.1:8787", CacheDir: filepath.Join(cache, "afishk"),
 		GameTitle: "World of Warcraft", UDPMin: 49160, UDPMax: 49180}
 	err = platformDefaults(&c)
 	return c, err
@@ -101,6 +103,9 @@ func (c Config) Validate() error {
 	}
 	if c.ICEAddress != "" && net.ParseIP(c.ICEAddress).To4() == nil {
 		return errors.New("ice_address must be a literal IPv4 VPN address")
+	}
+	if _, err := keybind.Parse(c.FishKey); err != nil {
+		return fmt.Errorf("fish_key: %w", err)
 	}
 	return validatePlatform(c)
 }

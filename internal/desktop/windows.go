@@ -3,6 +3,7 @@
 package desktop
 
 import (
+	"afishk/internal/keybind"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -130,7 +131,7 @@ type keyboardInput struct {
 	UnionTail [8]byte
 }
 
-func (n *NativeWindows) SendF(ctx context.Context, target Window) error {
+func (n *NativeWindows) SendKeys(ctx context.Context, target Window, keys []keybind.Key) error {
 	current, err := n.Active(ctx)
 	if err != nil {
 		return err
@@ -138,10 +139,19 @@ func (n *NativeWindows) SendF(ctx context.Context, target Window) error {
 	if current != target {
 		return errors.New("game focus or identity changed")
 	}
-	// Do not turn an explicit F tap into a modified shortcut or disturb a held F.
-	for _, vk := range []uintptr{0x10, 0x11, 0x12, 0x5b, 0x5c, 0x46} {
+	// Check the physical base key as well as any already-held modifiers.
+	base := keys[len(keys)-1]
+	scan := uintptr(base.Scan)
+	if base.Extended {
+		scan |= 0xe000
+	}
+	vkBase := call(user32.NewProc("MapVirtualKeyW"), scan, 3)
+	if vkBase == 0 {
+		return errors.New("cannot verify configured key state")
+	}
+	for _, vk := range []uintptr{0x10, 0x11, 0x12, 0x5b, 0x5c, vkBase} {
 		if call(asyncKey, vk)&0x8000 != 0 {
-			return errors.New("release modifiers and F before tapping")
+			return errors.New("release modifiers and the configured key before tapping")
 		}
 	}
 	if err = ctx.Err(); err != nil {
@@ -151,11 +161,26 @@ func (n *NativeWindows) SendF(ctx context.Context, target Window) error {
 	if current, err = n.Active(ctx); err != nil || current != target {
 		return errors.New("game is no longer the verified foreground window")
 	}
-	events := [2]keyboardInput{{Kind: 1, VK: 0x46}, {Kind: 1, VK: 0x46, Flags: 2}}
-	sent := call(sendInput, 2, uintptr(unsafe.Pointer(&events[0])), unsafe.Sizeof(events[0]))
-	if sent != 2 {
-		if sent == 1 {
-			_ = call(sendInput, 1, uintptr(unsafe.Pointer(&events[1])), unsafe.Sizeof(events[1]))
+	events := make([]keyboardInput, 0, len(keys)*2)
+	for _, key := range keys {
+		flags := uint32(8) // KEYEVENTF_SCANCODE
+		if key.Extended {
+			flags |= 1
+		}
+		events = append(events, keyboardInput{Kind: 1, Scan: key.Scan, Flags: flags})
+	}
+	for i := len(keys) - 1; i >= 0; i-- {
+		up := events[i]
+		up.Flags |= 2
+		events = append(events, up)
+	}
+	count := uintptr(len(events))
+	sent := call(sendInput, count, uintptr(unsafe.Pointer(&events[0])), unsafe.Sizeof(events[0]))
+	if sent != count {
+		// Only release keys whose down events were accepted and remain unmatched.
+		firstUp := max(count-sent, sent)
+		if firstUp < count {
+			_ = call(sendInput, count-firstUp, uintptr(unsafe.Pointer(&events[firstUp])), unsafe.Sizeof(events[0]))
 		}
 		return errors.New("input was rejected by Windows; run WoW and aFISHk as the same non-administrator user")
 	}

@@ -2,7 +2,7 @@
 
 For a logged-in Nobara/Fedora **KDE Plasma 6 Wayland** desktop. Install
 [FishFry Forever](https://www.curseforge.com/wow/addons/fishfry-forever) yourself
-and bind manual cast/reel to **F**. Keep WoW focused and the desktop unlocked.
+and bind manual cast/reel to your fishing key (default **F**). Keep WoW focused and the desktop unlocked.
 
 Verify the downloaded archive against `SHA256SUMS` before extracting it:
 `sha256sum --ignore-missing --check SHA256SUMS`.

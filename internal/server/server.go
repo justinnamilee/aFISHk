@@ -74,7 +74,7 @@ func (s *Server) Handler() http.Handler {
 			http.Error(w, err.Error(), http.StatusConflict)
 			return
 		}
-		writeJSON(w, map[string]string{"message": "F key sent"})
+		writeJSON(w, map[string]string{"message": "Fishing key sent"})
 	})
 	mux.HandleFunc("POST /api/screenshot", func(w http.ResponseWriter, r *http.Request) {
 		ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)

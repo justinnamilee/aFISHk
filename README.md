@@ -2,7 +2,7 @@
 
 **Fish in WoW: Forever from your phone, using your own Windows or Linux desktop,
 and the WiFi or a VPN.** Hear the game through your browser, tap to cast or reel,
-and take a screenshot when you want to check the scene. Each tap sends one **F**
+and take a screenshot when you want to check the scene. Each fishing tap sends your configured cast/reel key
 to the focused WoW window through FishFry. There is no automatic casting, bite
 detection or input timer. Use Moonlight/Parsec/TeamViewer/Rustdesk/VNC/Remote Desktop
 separately to manage your character or the desktop.
@@ -12,7 +12,7 @@ separately to manage your character or the desktop.
 ## Requirements
 
 - WoW: Forever and [FishFry Forever](https://www.curseforge.com/wow/addons/fishfry-forever),
-  installed by you, with manual cast/reel bound to **F**.
+  installed by you, with manual cast/reel bound to your fishing key (default **F**).
 - A signed-in, unlocked desktop with WoW focused.
 - Some means to keep the desktop session awake and signed in.
 - A phone browser and your own LAN/VPN connection. You manage VPN, DNS, firewall
@@ -74,7 +74,7 @@ startup entry but keeps your configuration, password and cached files.
 
 Run commands in your logged-in Plasma session as your normal user. Only system
 preparation uses sudo; aFISHk runs as you with no special permissions (except
-pressing **F**).
+sending the configured binding through ydotool).
 
 ### From a release
 
@@ -166,6 +166,11 @@ input daemon with `sudo systemctl disable --now "afishk-input-$(id -u).service"`
 
 ## Connection and everyday use
 
+In browser setup, click **Record fishing key** and press your in-game binding, or
+type it (for example, `Ctrl+Shift+4`). Letters, digits, F1–F12, punctuation,
+navigation and numpad keys are supported. Existing configurations use **F**.
+To change it later, edit `fish_key` in `config.json` and restart aFISHk.
+
 Allow these **destination ports on the desktop**, restricted to your trusted
 LAN/VPN clients:
 
@@ -197,7 +202,7 @@ switches from Classic to Dark Mode. Your browser remembers your choice for the n
 | Page unreachable | Check the chosen address, VPN routing and TCP firewall rule. On Windows, open aFISHk and inspect its Logs folder; on Linux, use `systemctl --user status afishk`. |
 | Hostname/origin rejected | Open exactly `public_origin`; ensure phone DNS resolves that hostname. |
 | Repeated login prompt | Use the contents of `token` as the password, not the filename. |
-| Input rejected | Focus the exact configured WoW window and unlock the desktop. On Windows, release F and modifier keys and run both programs without administrator elevation. On Linux, use `./scripts/linux/doctor.sh`. |
+| Input rejected | Focus the exact configured WoW window and unlock the desktop. On Windows, release the bound key and modifier keys and run both programs without administrator elevation. On Linux, use `./scripts/linux/doctor.sh`. |
 | Game moved or title changed | Update the exact game class/title in `config.json`. On Windows, also update `game_executable` if WoW moved to a different path. |
 | Windows screenshot blank or unavailable | Use windowed/borderless mode and keep WoW focused. Some game/rendering combinations cannot supply a window screenshot; aFISHk will not capture the whole desktop instead. |
 | Linux screenshot denied | Use the installed binary and KDE desktop entry; log out/in if permissions are cached. Do not disable KWin permission checks globally. |
