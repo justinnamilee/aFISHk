@@ -222,9 +222,7 @@ Your phone needs a direct UDP route for audio even when the web page uses an HTT
 Open your configured browser URL. Sign in with **any username** and your generated
 token as password. Tap **Listen to desktop**; if autoplay is blocked, tap Play in the
 audio player. Keep the page in the foreground. Tap the fishing button to cast,
-listen for a bite, then tap to reel. **Fresh screenshot** captures the game window.
-Failed captures preserve the previous successful image. The green dot indicates
-that the service is reachable, not that WoW is focused or a fish has been caught.
+listen for a bite, then tap to reel.
 
 ### Themes
 
