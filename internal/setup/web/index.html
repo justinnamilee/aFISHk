@@ -12,7 +12,7 @@
       <p class="lead">Set up your fishing companion</p>
       <p>
         This page runs only on this computer. Have WoW open, with FishFry installed and manual
-        cast/reel bound to F.
+        cast/reel bound to your fishing key.
       </p>
       <section id="setup">
         <h2>1. Identify your game</h2>
@@ -49,6 +49,13 @@
             Use an address reachable through your LAN/VPN. You manage the VPN, DNS and firewall.
             Default audio ports: UDP 49160–49180; web: TCP 8787.
           </p>
+          <h2>3. Game bindings</h2>
+          <p>
+            Type a binding or select Record and press the matching in-game key. Ctrl and Shift can
+            be combined. Tab leaves recording.
+          </p>
+          <label>Fishing key <input id="fish_key" value="F" required></label>
+          <button type="button" data-record="fish_key">Record fishing key</button>
           <details>
             <summary>Advanced connection options</summary>
             <label>HTTPS <select id="tls">
