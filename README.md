@@ -281,4 +281,5 @@ services. Use the same overrides for upgrades, and pass a custom config path via
 - Linux integration uses [KWin](https://develop.kde.org/docs/plasma/kwin/),
   [ydotool](https://github.com/ReimuNotMoe/ydotool) and [PipeWire](https://pipewire.org/).
 - Audio transport uses [Pion WebRTC](https://github.com/pion/webrtc).
+- App icon artwork by Twitter and contributors, adapted with padding and a dark teal background. [Twemoji](https://github.com/jdecked/twemoji/tree/v16.0.1) · [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
 - Dependencies retain their own licenses and copyrights.
