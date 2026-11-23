@@ -187,6 +187,9 @@ listen for a bite, then tap to reel. **Fresh screenshot** captures the game wind
 Failed captures preserve the previous successful image. The green dot indicates
 that the service is reachable, not that WoW is focused or a fish has been caught.
 
+Tap the colour wheel beside **aFISHk** to cycle through the themes. The first tap
+switches from Classic to Dark Mode. Your browser remembers your choice for the next visit.
+
 ## Troubleshooting
 
 | Symptom | What to do |

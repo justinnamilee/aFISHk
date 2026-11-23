@@ -69,3 +69,9 @@ To add a backend:
 - Windows lifecycle uses one per-user/session instance and an explicit stop event. Installer upgrades stop the old copy before replacement. Do not automatically restart control after installation; use the optional finish-page launch or Start Menu.
 - Run Linux formatting, lint, race tests, installer tests and release checks. Also run `GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go vet ./...`, the Windows linter, and cross-compile Windows tests with `go test -exec /bin/true`; label that last command as compilation only in the PR. Inspect installer payloads, PE imports and source/license bundles on Linux.
 - Runtime acceptance belongs in the PR: Windows 11 install/upgrade/uninstall, sign-in startup, paths with spaces/non-ASCII, DACLs, focused input and rejection paths, screenshot behavior/DPI/timeout, WASAPI device changes and cleanup, phone/VPN playback, and the browser wizard on both platforms. Do not represent Linux compilation or Wine as a substitute for these checks.
+
+## Fishing page themes
+
+- Copy a palette in `internal/server/web/themes/` to a lowercase, hyphenated CSS filename. Set its native `color-scheme` and semantic colour variables. Keep layout and control styles in `internal/server/web/style.css`.
+- Append the filename stem to the ordered list in `internal/server/web/themes.js`. Keep existing IDs stable for saved preferences and keep Classic first as the default.
+- Check text, focus rings, status dots and error messages against the new backgrounds. Cycle through the wheel with touch or keyboard, check wraparound, and reload to verify the saved selection.
