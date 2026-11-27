@@ -99,6 +99,10 @@ $('settings').addEventListener('submit', async (event) => {
     $('token').value = data.token;
     $('companion').href = data.origin;
     $('companion').textContent = data.origin;
+    if (data.qr) {
+      $('qr').src = '/api/qr';
+      $('scan').hidden = false;
+    }
     $('next').textContent = platform === 'windows'
       ? 'Click Finish setup, then open aFISHk from the Start Menu if it is not already running. Keep WoW focused when fishing.'
       : 'Click Finish setup, then start your installed user service: systemctl --user start afishk';
@@ -142,6 +146,21 @@ $('finish').addEventListener('click', async () => {
     }
     $('ip').value = data.addresses[0] || '127.0.0.1';
     addressChanged();
+    if (data.overwrite) {
+      const settings = data.settings;
+      if (settings) {
+        const split = settings.listen.lastIndexOf(':');
+        $('ip').value = settings.listen.slice(0, split);
+        $('port').value = settings.listen.slice(split + 1);
+        addressChanged();
+        for (const field of ['origin', 'audio_ip', 'fish_key', 'lure_key', 'tls', 'cert', 'key']) {
+          if (settings[field]) $(field).value = settings[field];
+        }
+      }
+      $('save-note').textContent =
+        'Saving replaces your current configuration and keeps your browser password.';
+      $('save').textContent = 'Overwrite configuration';
+    }
     $('pulse_source').value = data.pulse_source;
     $('pulse_label').hidden = platform !== 'linux';
   } catch (err) {

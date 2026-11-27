@@ -51,8 +51,8 @@ required on linux as well).
 5. Choose your desktop LAN/VPN address, connectable URL, and IPv4 audio.
 6. Configure your fishing and lure keys (lure is optional), and save settings.
 7. Copy the generated browser password, then click **Finish setup**. The companion
-   starts. Open the displayed address on your phone and sign in with any username
-   and that password.
+   starts. Scan the QR code or open the displayed address on your phone, then sign
+   in with any username and that password.
 
 The installer does not open firewall ports or install FishFry. Windows may warn
 about an unsigned installer; **only install downloads you trust from this project's
@@ -71,8 +71,9 @@ a second copy. Use Stop aFISHk before editing configuration, then launch it agai
 The password can be retrieved from the `token` file if you lose it.
 
 For updates, run the new installer. It stops the old copy and preserves your
-configuration and password. Open aFISHk afterward. Rerunning the installer also
-lets you change the start-at-sign-in option. Uninstall removes the program and
+configuration and password. Use **Re-run browser setup after updating** to edit
+settings, or open aFISHk afterward. Rerunning the installer also lets you change
+the start-at-sign-in option. Uninstall removes the program and
 startup entry but keeps your configuration, password and cached files.
 
 ## Install on Linux
@@ -127,8 +128,8 @@ Both linux installation methods use the same browser setup:
 2. Choose your desktop LAN/VPN address, connectable URL, and IPv4 audio.
 3. Configure your fishing and lure keys (lure is optional), and save settings.
 4. Copy the generated browser password, then click **Finish setup**. The companion
-   starts. Open the displayed address on your phone and sign in with any username
-   and that password.
+   starts. Scan the QR code or open the displayed address on your phone, then sign
+   in with any username and that password.
 
 Alternatively, terminal setup is available with `afishk inspect` followed
 by `afishk setup`.
@@ -171,7 +172,7 @@ For release updates, verify/extract the new archive, then:
 systemctl --user restart afishk
 ```
 
-Do not rerun setup for an existing config. To disable startup and stop the app,
+To change settings through setup, see [Re-run setup](#re-run-setup). To disable startup and stop the app,
 use `systemctl --user disable --now afishk`. If no longer needed, disable the
 input daemon with `sudo systemctl disable --now "afishk-input-$(id -u).service"`.
 
@@ -195,15 +196,23 @@ LAN/VPN clients:
 | TCP | `8787` | Web page, controls, screenshots and audio negotiation |
 | UDP | `49160–49180` | WebRTC audio |
 
-### Re-run browser setup
+### Re-run setup
 
-**To re-run browser setup again**, keep the `token` file to preserve your browser password, then:
+Setup keeps your existing configuration until you choose to save. It starts
+with your saved settings and keeps your current browser password.
 
-- **Windows:** Choose **Stop aFISHk** from Start, open **Settings folder**, and rename
-  `config.json` to `config.json.bak` (or delete). Launch **aFISHk** from Start to open setup.
-- **Linux:** Run `systemctl --user stop afishk` and move `config.json` aside
-  (or delete, it's normally in `~/.config/afishk/`). Run `~/.local/bin/afishk setup --web`,
-  finish setup, then run `systemctl --user start afishk`.
+- **Windows:** Stop aFISHk from the Start Menu. Select **Re-run browser setup after
+  updating** in the installer, or run `.\afishk.exe setup --web --overwrite` from
+  the install folder. Finish setup, then open aFISHk from the Start Menu.
+- **Linux:** Run `systemctl --user stop afishk`, then `afishk setup --web --overwrite`.
+  Omit `--web` for terminal setup. After saving, run `systemctl --user start afishk`.
+
+Both setup modes show a QR code for the control page. Use the browser password
+when your phone prompts you to sign in.
+
+To generate a new browser password, run `afishk setup --rotate-token` (use
+`.\afishk.exe` on Windows), then restart aFISHk. Retrieve the new password from the
+configured token file.
 
 ### Browser setup tips
 
@@ -245,7 +254,7 @@ Feel free to open a PR with new theme(s), they are always welcome.
 | Audio silent | Ensure sound plays on the default Windows playback device or selected Linux Pulse monitor. After switching devices, stop/start listening. |
 | Audio never connects | Check `ice_address` and UDP firewall rules; opening TCP alone is insufficient. |
 | Audio drops or flutters | Compare LAN/VPN and speaker/Bluetooth playback; keep the phone page foregrounded. Stop/start listening to reconnect. |
-| Setup says config exists | Edit the existing config; setup deliberately does not replace it. |
+| Setup says config exists | Use `afishk setup --web --overwrite` to edit existing settings. |
 
 For Linux logs use `journalctl --user -u afishk -f`. For a foreground run, stop
 the user service, set `YDOTOOL_SOCKET=/run/afishk-input-$(id -u)/socket`, and run

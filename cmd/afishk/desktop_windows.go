@@ -188,7 +188,7 @@ func desktopLaunch(argv []string) (launchErr error) {
 			return errors.New("open aFISHk from Start Menu to finish first-run setup")
 		}
 		firstRun = true
-		if err = webSetup(ctx, *path); err != nil {
+		if err = webSetup(ctx, *path, false); err != nil {
 			return err
 		}
 	}

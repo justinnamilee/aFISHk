@@ -14,6 +14,8 @@ ShowUninstDetails show
 BrandingText "aFISHk ${VERSION}"
 Var StartupCheckbox
 Var StartupEnabled
+Var SetupCheckbox
+Var SetupEnabled
 
 !insertmacro MUI_PAGE_WELCOME
 !insertmacro MUI_PAGE_LICENSE "${STAGE}/LICENSE"
@@ -23,6 +25,7 @@ Page custom OptionsPage OptionsLeave
 !define MUI_FINISHPAGE_RUN_FUNCTION Launch
 !define MUI_FINISHPAGE_RUN_TEXT "Open aFISHk (first run opens browser setup)"
 !define MUI_FINISHPAGE_RUN_NOTCHECKED
+!define MUI_PAGE_CUSTOMFUNCTION_SHOW FinishOptions
 !insertmacro MUI_PAGE_FINISH
 !insertmacro MUI_UNPAGE_CONFIRM
 !insertmacro MUI_UNPAGE_INSTFILES
@@ -41,6 +44,7 @@ Function .onInit
     Abort
   ${EndIf}
   StrCpy $StartupEnabled ${BST_UNCHECKED}
+  StrCpy $SetupEnabled ${BST_UNCHECKED}
   ReadRegStr $0 HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "aFISHk"
   ${If} $0 != ""
     StrCpy $StartupEnabled ${BST_CHECKED}
@@ -48,6 +52,7 @@ Function .onInit
 FunctionEnd
 
 Function OptionsPage
+  StrCpy $SetupCheckbox ""
   nsDialogs::Create 1018
   Pop $0
   ${If} $0 == error
@@ -58,10 +63,18 @@ Function OptionsPage
   ${NSD_CreateCheckbox} 0 58u 100% 16u "Start aFISHk when I sign in"
   Pop $StartupCheckbox
   ${NSD_SetState} $StartupCheckbox $StartupEnabled
+  IfFileExists "$APPDATA\afishk\config.json" 0 optionsReady
+    ${NSD_CreateCheckbox} 0 78u 100% 16u "Re-run browser setup after updating"
+    Pop $SetupCheckbox
+    ${NSD_SetState} $SetupCheckbox $SetupEnabled
+  optionsReady:
   nsDialogs::Show
 FunctionEnd
 Function OptionsLeave
   ${NSD_GetState} $StartupCheckbox $StartupEnabled
+  ${If} $SetupCheckbox != ""
+    ${NSD_GetState} $SetupCheckbox $SetupEnabled
+  ${EndIf}
 FunctionEnd
 
 Section "Install"
@@ -106,7 +119,18 @@ Section "Install"
   WriteRegDWORD HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\aFISHk" "NoRepair" 1
 SectionEnd
 
+Function FinishOptions
+  ${If} $SetupEnabled == ${BST_CHECKED}
+    ${NSD_SetText} $mui.FinishPage.Run "Re-run browser setup"
+    ${NSD_SetState} $mui.FinishPage.Run ${BST_CHECKED}
+  ${EndIf}
+FunctionEnd
+
 Function Launch
+  ${If} $SetupEnabled == ${BST_CHECKED}
+    Exec '"$INSTDIR\afishk.exe" setup --web --overwrite'
+    Return
+  ${EndIf}
   Exec '"$INSTDIR\afishk.exe" launch'
 FunctionEnd
 
