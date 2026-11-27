@@ -83,9 +83,8 @@
               ></label>
             <label id="pulse_label">Pulse audio source <input id="pulse_source"></label>
           </details>
-          <p>
-            A strong password will be generated for the phone browser. Existing configuration is
-            never overwritten.
+          <p id="save-note">
+            Setup uses a strong password for the phone browser.
           </p>
           <button id="save" disabled>Save settings</button>
         </form>
@@ -102,6 +101,10 @@
           Show password
         </button>
         <button id="copy" type="button">Copy password</button>
+        <p id="scan" hidden>
+          Scan this code to open aFISHk on your phone.<br>
+          <img id="qr" alt="QR code for the aFISHk control page">
+        </p>
         <p id="next"></p>
         <button id="finish" type="button">Finish setup</button>
         <p><a id="companion" target="_blank" rel="noopener noreferrer">Open aFISHk</a></p>
