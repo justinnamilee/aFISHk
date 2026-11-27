@@ -34,3 +34,30 @@ func WriteNew(path string, data []byte) error {
 	}
 	return err
 }
+
+// Replace writes a private file next to the destination before replacing it.
+func Replace(path string, data []byte) error {
+	info, err := os.Lstat(path)
+	if err != nil {
+		return err
+	}
+	if !info.Mode().IsRegular() {
+		return os.ErrPermission
+	}
+	f, err := os.CreateTemp(filepath.Dir(path), ".afishk-*")
+	if err != nil {
+		return err
+	}
+	defer func() { _ = os.Remove(f.Name()) }()
+	err = protect(f.Name())
+	if err == nil {
+		_, err = f.Write(data)
+	}
+	if closeErr := f.Close(); err == nil {
+		err = closeErr
+	}
+	if err != nil {
+		return err
+	}
+	return os.Rename(f.Name(), path)
+}

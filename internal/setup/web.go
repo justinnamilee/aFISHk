@@ -15,7 +15,6 @@ import (
 	"net"
 	"net/http"
 	"net/url"
-	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -24,6 +23,7 @@ import (
 
 	"afishk/internal/config"
 	"afishk/internal/desktop"
+	"rsc.io/qr"
 )
 
 //go:embed web/*
@@ -33,6 +33,8 @@ type webWizard struct {
 	path, origin, csrf string
 	windows            desktop.WindowSource
 	defaults           config.Config
+	overwrite          bool
+	qrPNG              []byte
 	mu                 sync.Mutex
 	target             desktop.Window
 	saved, detecting   bool
@@ -52,17 +54,13 @@ type webSettings struct {
 	Key     string  `json:"key"`
 }
 
-// RunWeb is a temporary, loopback-only first-run wizard. It never replaces an
-// existing configuration, starts desktop control or opens a LAN setup listener.
-func RunWeb(ctx context.Context, path string, source desktop.WindowSource, open func(string) error, out io.Writer) error {
+// RunWeb is a temporary, loopback-only setup wizard.
+func RunWeb(ctx context.Context, path string, source desktop.WindowSource, open func(string) error, out io.Writer, overwrite bool) error {
 	path, err := filepath.Abs(path)
 	if err != nil {
 		return err
 	}
-	if _, err = os.Lstat(path); !os.IsNotExist(err) {
-		return errors.New("configuration already exists or cannot be accessed")
-	}
-	defaults, err := config.Defaults()
+	defaults, err := setupConfig(path, overwrite)
 	if err != nil {
 		return err
 	}
@@ -75,7 +73,7 @@ func RunWeb(ctx context.Context, path string, source desktop.WindowSource, open 
 	if _, err = rand.Read(nonce); err != nil {
 		return err
 	}
-	w := &webWizard{path: path, origin: "http://" + ln.Addr().String(), csrf: hex.EncodeToString(nonce), windows: source, defaults: defaults, done: make(chan struct{})}
+	w := &webWizard{path: path, origin: "http://" + ln.Addr().String(), csrf: hex.EncodeToString(nonce), windows: source, defaults: defaults, overwrite: overwrite, done: make(chan struct{})}
 	requests, cancelRequests := context.WithCancel(ctx)
 	defer cancelRequests()
 	srv := &http.Server{Handler: w.handler(), BaseContext: func(net.Listener) context.Context { return requests }, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 20 * time.Second, IdleTimeout: 30 * time.Second, MaxHeaderBytes: 16 << 10}
@@ -118,7 +116,12 @@ func (w *webWizard) handler() http.Handler {
 				}
 			}
 		}
-		respond(rw, map[string]any{"csrf": w.csrf, "platform": runtime.GOOS, "addresses": addresses, "pulse_source": w.defaults.PulseSource})
+		data := map[string]any{"csrf": w.csrf, "platform": runtime.GOOS, "addresses": addresses, "pulse_source": w.defaults.PulseSource, "overwrite": w.overwrite}
+		if w.overwrite {
+			c := w.defaults
+			data["settings"] = webSettings{Listen: c.Listen, Origin: c.PublicOrigin, AudioIP: c.ICEAddress, FishKey: &c.FishKey, LureKey: c.LureKey, TLS: tlsMode(c), Cert: c.TLSCert, Key: c.TLSKey}
+		}
+		respond(rw, data)
 	})
 	mux.HandleFunc("POST /api/detect", func(rw http.ResponseWriter, r *http.Request) {
 		w.mu.Lock()
@@ -160,7 +163,7 @@ func (w *webWizard) handler() http.Handler {
 		w.mu.Lock()
 		defer w.mu.Unlock()
 		if w.saved || w.detecting || w.target.ID == "" {
-			http.Error(rw, "Identify the focused game before saving; an existing config cannot be replaced", http.StatusConflict)
+			http.Error(rw, "Identify the focused game before saving. Settings can only be saved once per setup session.", http.StatusConflict)
 			return
 		}
 		var values webSettings
@@ -179,13 +182,26 @@ func (w *webWizard) handler() http.Handler {
 			http.Error(rw, err.Error(), http.StatusBadRequest)
 			return
 		}
-		token, err := Save(c, w.path)
+		token, err := Save(c, w.path, w.overwrite)
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusConflict)
 			return
 		}
 		w.saved = true
-		respond(rw, map[string]string{"origin": c.PublicOrigin, "token": token, "config": w.path})
+		if code, err := qr.Encode(c.PublicOrigin, qr.M); err == nil {
+			w.qrPNG = code.PNG()
+		}
+		respond(rw, map[string]any{"origin": c.PublicOrigin, "token": token, "config": w.path, "qr": len(w.qrPNG) > 0})
+	})
+	mux.HandleFunc("GET /api/qr", func(rw http.ResponseWriter, r *http.Request) {
+		w.mu.Lock()
+		defer w.mu.Unlock()
+		if len(w.qrPNG) == 0 {
+			http.NotFound(rw, r)
+			return
+		}
+		rw.Header().Set("Content-Type", "image/png")
+		_, _ = rw.Write(w.qrPNG)
 	})
 	mux.HandleFunc("POST /api/finish", func(rw http.ResponseWriter, r *http.Request) {
 		w.mu.Lock()
@@ -230,7 +246,8 @@ func (w *webWizard) configuration(v webSettings) (config.Config, error) {
 	if runtime.GOOS == "linux" {
 		c.PulseSource = v.Pulse
 	}
-	c.TokenFile = filepath.Join(filepath.Dir(w.path), "token")
+	c.TokenFile = tokenPath(c.TokenFile, w.path)
+	c.TLSCert, c.TLSKey = "", ""
 	scheme := "http"
 	switch v.TLS {
 	case "no":

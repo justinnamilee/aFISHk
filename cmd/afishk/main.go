@@ -35,25 +35,13 @@ func main() {
 }
 func run() error {
 	if handled, err := nativeCommand(); handled {
-		return err
+		return helpResult(err)
 	}
 	if len(os.Args) > 1 && os.Args[1] == "launch" {
-		return desktopLaunch(os.Args[2:])
+		return helpResult(desktopLaunch(os.Args[2:]))
 	}
 	if len(os.Args) > 1 && (os.Args[1] == "setup" || os.Args[1] == "firstrun") {
-		args := flag.NewFlagSet("setup", flag.ContinueOnError)
-		path := args.String("config", setup.DefaultPath(), "new configuration file (never overwrites)")
-		web := args.Bool("web", false, "open local browser setup")
-		if err := args.Parse(os.Args[2:]); err != nil {
-			return err
-		}
-		if args.NArg() != 0 {
-			return errors.New("usage: afishk setup [--web] [--config PATH]")
-		}
-		if *web {
-			return webSetup(context.Background(), *path)
-		}
-		return setup.Run(os.Stdin, os.Stdout, *path)
+		return setupCommand(os.Args[2:])
 	}
 	if len(os.Args) > 1 && os.Args[1] == "version" {
 		fmt.Println("afishk", version)
@@ -75,6 +63,7 @@ func run() error {
 	}
 	path := flag.String("config", setup.DefaultPath(), "configuration file")
 	check := flag.Bool("check", false, "validate configuration without starting")
+	flag.Usage = usage
 	flag.Parse()
 	if flag.NArg() != 0 {
 		return fmt.Errorf("unknown command %q; use setup, inspect, version, or --help", flag.Arg(0))
@@ -92,13 +81,13 @@ func run() error {
 	return serve(ctx, c, nil)
 }
 
-func webSetup(ctx context.Context, path string) error {
+func webSetup(ctx context.Context, path string, overwrite bool) error {
 	b, err := platform.Open(config.Config{})
 	if err != nil {
 		return err
 	}
 	defer b.Close()
-	return setup.RunWeb(ctx, path, b.Windows, browser.Open, os.Stdout)
+	return setup.RunWeb(ctx, path, b.Windows, browser.Open, os.Stdout, overwrite)
 }
 
 func serve(ctx context.Context, c config.Config, ready func()) error {

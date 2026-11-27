@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"image/png"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -13,6 +14,7 @@ import (
 
 	"afishk/internal/config"
 	"afishk/internal/desktop"
+	"rsc.io/qr"
 )
 
 func testWizard(t *testing.T) *webWizard {
@@ -65,12 +67,27 @@ func TestWizardSavesVerifiedTargetAndNeverOverwrites(t *testing.T) {
 	if out.Code != 200 {
 		t.Fatal(out.Code, out.Body.String())
 	}
-	var saved map[string]string
+	var saved struct {
+		Token string `json:"token"`
+		QR    bool   `json:"qr"`
+	}
 	if err := json.Unmarshal(out.Body.Bytes(), &saved); err != nil {
 		t.Fatal(err)
 	}
-	if len(saved["token"]) != 64 {
+	if len(saved.Token) != 64 {
 		t.Fatal("missing random password")
+	}
+	out = httptest.NewRecorder()
+	w.handler().ServeHTTP(out, wizardRequest(w, "GET", "/api/qr", ""))
+	expected, err := qr.Encode("http://192.168.1.10:8787", qr.M)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !saved.QR || out.Code != http.StatusOK || out.Header().Get("Content-Type") != "image/png" || !bytes.Equal(out.Body.Bytes(), expected.PNG()) {
+		t.Fatal("expected a PNG QR code encoding only the control page URL")
+	}
+	if _, err := png.Decode(out.Body); err != nil {
+		t.Fatal(err)
 	}
 	c, err := config.Load(w.path)
 	if err != nil {
@@ -132,8 +149,42 @@ func TestWizardExistingConfigurationDoesNotOpenListener(t *testing.T) {
 		t.Fatal(err)
 	}
 	opened := false
-	err := RunWeb(context.Background(), path, nil, func(string) error { opened = true; return nil }, &bytes.Buffer{})
+	err := RunWeb(context.Background(), path, nil, func(string) error { opened = true; return nil }, &bytes.Buffer{}, false)
 	if err == nil || opened {
 		t.Fatal("existing configuration opened setup")
+	}
+}
+
+func TestWizardOverwritePreservesTokenAndAdvancedSettings(t *testing.T) {
+	w := testWizard(t)
+	initial := w.defaults
+	initial.GameClass, initial.GameTitle, initial.GameExecutable = w.target.Class, w.target.Title, w.target.Executable
+	initial.UDPMin, initial.UDPMax = 50200, 50201
+	initial.TokenFile = filepath.Join(filepath.Dir(w.path), "custom-token")
+	token, err := Save(initial, w.path, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	w.overwrite = true
+	w.defaults, err = setupConfig(w.path, w.overwrite)
+	if err != nil {
+		t.Fatal(err)
+	}
+	body := `{"listen":"192.168.1.10:8787","origin":"https://fish.example.test","audio_ip":"192.168.1.10","pulse_source":"@DEFAULT_MONITOR@","tls":"proxy"}`
+	out := httptest.NewRecorder()
+	w.handler().ServeHTTP(out, wizardRequest(w, "POST", "/api/save", body))
+	if out.Code != http.StatusOK {
+		t.Fatal(out.Code, out.Body.String())
+	}
+	var saved map[string]any
+	if err := json.Unmarshal(out.Body.Bytes(), &saved); err != nil {
+		t.Fatal(err)
+	}
+	c, err := config.Load(w.path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c.PublicOrigin != "https://fish.example.test" || c.TokenFile != initial.TokenFile || c.UDPMin != initial.UDPMin || c.UDPMax != initial.UDPMax || saved["token"] != token {
+		t.Fatal("overwrite lost advanced settings or changed the password")
 	}
 }

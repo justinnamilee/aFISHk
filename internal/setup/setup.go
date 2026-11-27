@@ -25,14 +25,15 @@ func DefaultPath() string {
 	return filepath.Join(base, "afishk", "config.json")
 }
 
-// Run never replaces an existing configuration or token. EOF cancels setup.
-func Run(in io.Reader, out io.Writer, path string) error {
+// Run guides the user through setup. EOF cancels setup before saving.
+func Run(in io.Reader, out io.Writer, path string, overwrite bool) error {
 	path, err := filepath.Abs(path)
 	if err != nil {
 		return err
 	}
-	if _, err := os.Lstat(path); !os.IsNotExist(err) {
-		return fmt.Errorf("configuration already exists or cannot be accessed: %s; use --config with a new path", path)
+	c, err := setupConfig(path, overwrite)
+	if err != nil {
+		return err
 	}
 	reader := bufio.NewReader(in)
 	ask := func(label, fallback string) (string, error) {
@@ -49,14 +50,15 @@ func Run(in io.Reader, out io.Writer, path string) error {
 		}
 		return line, nil
 	}
-	c, err := config.Defaults()
-	if err != nil {
-		return err
+	if overwrite {
+		if _, err := fmt.Fprintln(out, "Saving will replace", path); err != nil {
+			return err
+		}
 	}
 	if _, err = fmt.Fprintln(out, "aFISHk setup — Enter accepts defaults; Ctrl-D cancels.\nRun afishk inspect first for the exact WoW class and title.\nUse your trusted LAN/VPN address; setup does not change DNS or firewall rules."); err != nil {
 		return err
 	}
-	if c.Listen, err = ask("Listen IP:port", "127.0.0.1:8787"); err != nil {
+	if c.Listen, err = ask("Listen IP:port", c.Listen); err != nil {
 		return err
 	}
 	host, port, err := net.SplitHostPort(c.Listen)
@@ -66,7 +68,7 @@ func Run(in io.Reader, out io.Writer, path string) error {
 	if n, err := strconv.Atoi(port); err != nil || n < 1 || n > 65535 {
 		return fmt.Errorf("listen port must be between 1 and 65535")
 	}
-	mode, err := ask("TLS: no, builtin (PEM files), or proxy (external HTTPS)", "no")
+	mode, err := ask("TLS: no, builtin (PEM files), or proxy (external HTTPS)", tlsMode(c))
 	if err != nil {
 		return err
 	}
@@ -75,10 +77,10 @@ func Run(in io.Reader, out io.Writer, path string) error {
 	case "no":
 	case "builtin":
 		scheme = "https"
-		if c.TLSCert, err = ask("Absolute certificate PEM path", ""); err != nil {
+		if c.TLSCert, err = ask("Absolute certificate PEM path", c.TLSCert); err != nil {
 			return err
 		}
-		if c.TLSKey, err = ask("Absolute private key PEM path", ""); err != nil {
+		if c.TLSKey, err = ask("Absolute private key PEM path", c.TLSKey); err != nil {
 			return err
 		}
 		for _, p := range []string{c.TLSCert, c.TLSKey} {
@@ -94,9 +96,15 @@ func Run(in io.Reader, out io.Writer, path string) error {
 	default:
 		return fmt.Errorf("TLS must be no, builtin, or proxy")
 	}
+	if mode != "builtin" {
+		c.TLSCert, c.TLSKey = "", ""
+	}
 	originDefault := scheme + "://" + net.JoinHostPort(host, port)
 	if net.ParseIP(host).IsUnspecified() || mode == "proxy" {
 		originDefault = ""
+	}
+	if strings.HasPrefix(c.PublicOrigin, scheme+"://") {
+		originDefault = c.PublicOrigin
 	}
 	if c.PublicOrigin, err = ask("Browser origin (DNS name or IP, with scheme and port)", originDefault); err != nil {
 		return err
@@ -115,6 +123,9 @@ func Run(in io.Reader, out io.Writer, path string) error {
 	if net.ParseIP(host).IsUnspecified() || net.ParseIP(host).To4() == nil {
 		mediaIP = ""
 	}
+	if c.ICEAddress != "" {
+		mediaIP = c.ICEAddress
+	}
 	if c.ICEAddress, err = ask("Desktop IPv4 reachable by phone for audio (required for wildcard/IPv6 listeners)", mediaIP); err != nil {
 		return err
 	}
@@ -124,19 +135,32 @@ func Run(in io.Reader, out io.Writer, path string) error {
 	if ip := net.ParseIP(c.ICEAddress); ip != nil && ip.IsUnspecified() {
 		return fmt.Errorf("audio IPv4 must be reachable, not a wildcard address")
 	}
-	if c.GameClass, err = ask("Exact game class from afishk inspect", ""); err != nil {
+	if c.GameClass, err = ask("Exact game class from afishk inspect", c.GameClass); err != nil {
 		return err
 	}
 	if c.GameTitle, err = ask("Exact game title from afishk inspect", c.GameTitle); err != nil {
 		return err
 	}
-	if err = configurePlatform(&c, ask); err != nil {
+	if err = configurePlatform(&c, ask, overwrite); err != nil {
 		return err
 	}
-	if _, err = Save(c, path); err != nil {
+	c.TokenFile = tokenPath(c.TokenFile, path)
+	if _, err = Save(c, path, overwrite); err != nil {
 		return err
 	}
-	c.TokenFile = filepath.Join(filepath.Dir(path), "token")
 	_, err = fmt.Fprintf(out, "Saved %s\nToken: %s (use as the browser Basic auth password; any username).\nOpen %s. Allow TCP %s and UDP %d–%d from trusted clients.\nValidate: afishk --config %q --check\nThen follow the platform startup instructions in README\n", path, c.TokenFile, c.PublicOrigin, port, c.UDPMin, c.UDPMax, path)
-	return err
+	if err != nil {
+		return err
+	}
+	return printQR(out, c.PublicOrigin)
+}
+
+func tlsMode(c config.Config) string {
+	if c.TLSCert != "" {
+		return "builtin"
+	}
+	if strings.HasPrefix(c.PublicOrigin, "https://") {
+		return "proxy"
+	}
+	return "no"
 }
